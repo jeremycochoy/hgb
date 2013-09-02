@@ -54,8 +54,9 @@ executable hgb
   -- other-modules:       
   
   -- Other library packages from which modules are imported.
-  build-depends:       base         == 4.6.*,
-                       lens         >= 3.9,
-                       data-default >= 0.5,
-                       vector       >= 0.10,
-                       mtl          >= 2.1
+  build-depends:       base           == 4.6.*,
+                       lens           >= 3.9,
+                       data-default   >= 0.5,
+                       vector         >= 0.10,
+                       mtl            >= 2.1,
+                       errors         >= 1.4.2

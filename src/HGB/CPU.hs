@@ -6,15 +6,17 @@ import           Data.Word (Word8(..), Word16(..), Word(..))
 import           Control.Lens
 import           Control.Monad.State
 import           Data.Default
+import           Data.Bits
 import           Data.Bits.Lens
 import           HGB.Types
 import           HGB.MMU
+import           Debug.Trace
 
 -- | Read the byte pointed by PC and increment it
 readProgramByte :: VmS Word8
 readProgramByte = do
-  pcV <- use $ pc
-  byte <- rb `liftM` (use mmu)
+  pc' <- use $ pc
+  byte <- (rb pc') `liftM` (use mmu)
   pc += 1
   return byte
 
@@ -31,10 +33,10 @@ exec = do
   return ()
 
 dispatch :: Word8 -> Instruction
-dispatch 0x00 = Instruction (Clock 1 4) iNOP
-dispatch 0x40 = Instruction (Clock 1 4) iLDrr_bb
-dispatch 0xB8 = Instruction (Clock 1 4) iCPr_b
-dispatch _    = error "Instruction not implemented"
+dispatch 0x00 = trace "nop" $ Instruction (Clock 1 4) iNOP
+dispatch 0x40 = trace "LDrr_bb" $ Instruction (Clock 1 4) iLDrr_bb
+dispatch 0xB8 = trace "CPr_b" $ Instruction (Clock 1 4) iCPr_b
+dispatch op   = error $ "Instruction not implemented : " ++ (show op)
 
 -- | Set underflow flag if true
 underflow :: Bool -> VmS ()
@@ -61,15 +63,9 @@ halfcarry b = do
 -- | No OPeration
 iNOP = return ()
 
--- | Compare B to A and set the flags
-iCPr_b :: VmS ()
-iCPr_b = do
-  a' <- use $ a
-  b' <- use $ b
-  let diff = a' - b'
-  underflow $ a' < b'
-  zero diff
-  halfcarry True
+-- LD Dst Src
+
+-- Those are LD Register <- Register operations
 
 iLDrr_aa :: VmS ()
 iLDrr_aa = a <~ use a
@@ -176,3 +172,47 @@ iLDrr_lh = h <~ use h
 iLDrr_ll :: VmS ()
 iLDrr_ll = h <~ use l
 
+-- Those are LD Register <- MMU operations
+
+readHLm :: VmS Word8
+readHLm = do
+  h' <- use h
+  l' <- use l
+  -- Compute a 16 bits addr as h:l
+  let idx = ((shiftL (fromIntegral h') 8) + (fromIntegral l')) :: Word16
+  (rb idx) `liftM` (use mmu)
+
+iLDrHLm_a :: VmS ()
+iLDrHLm_a = a <~ readHLm
+iLDrHLm_b :: VmS ()
+iLDrHLm_b = b <~ readHLm
+iLDrHLm_c :: VmS ()
+iLDrHLm_c = c <~ readHLm
+iLDrHLm_d :: VmS ()
+iLDrHLm_d = d <~ readHLm
+iLDrHLm_e :: VmS ()
+iLDrHLm_e = e <~ readHLm
+iLDrHLm_h :: VmS ()
+iLDrHLm_h = h <~ readHLm
+iLDrHLm_l :: VmS ()
+iLDrHLm_l = l <~ readHLm
+
+
+writeHLm :: Word8 -> VmS ()
+writeHLm v = do
+  h' <- use h
+  l' <- use l
+  -- Compute a 16 bits addr as h:l
+  let idx = ((shiftL (fromIntegral h') 8) + (fromIntegral l')) :: Word16
+  mmu %= (wb idx v)
+
+
+-- | Compare B to A and set the flags
+iCPr_b :: VmS ()
+iCPr_b = do
+  a' <- use $ a
+  b' <- use $ b
+  let diff = a' - b'
+  underflow $ a' < b'
+  zero diff
+  halfcarry True

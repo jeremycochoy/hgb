@@ -1,23 +1,27 @@
 module HGB.MMU
   ( rb
   , rw
+  , wb
+  , ww
   ) where
 
 import           Data.Word (Word8(..), Word16(..), Word(..))
 import           HGB.Types
+import           Data.Vector.Unboxed ((!))
+import           Control.Lens
 
 -- | Read a byte from MMU (TODO)
-rb :: Mmu -> Word8
-rb _ = 0
+rb :: Word16 -> Mmu -> Word8
+rb addr m = (m ^. bios) ! (fromIntegral addr)
 
 -- | Read a word from MMU (TODO)
-rw :: Mmu -> Word16
-rw _ = 0
+rw :: Word16 -> Mmu -> Word16
+rw _ _ = 0
 
 -- | Write a byte from MMU (TODO)
-wb :: Word8 -> Mmu -> Mmu
-wb _ x = x
+wb :: Word16 -> Word8 -> Mmu -> Mmu
+wb _ _ x = x
 
 -- | Write a word from MMU (TODO)
-ww :: Word8 -> Mmu -> Mmu
-ww _ x = x
+ww :: Word16 -> Word8 -> Mmu -> Mmu
+ww _ _ x = x
