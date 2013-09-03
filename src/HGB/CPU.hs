@@ -35,6 +35,17 @@ exec = do
 dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "nop" $ Instruction (Clock 1 4) iNOP
 dispatch 0x40 = trace "LDrr_bb" $ Instruction (Clock 1 4) iLDrr_bb
+dispatch 0x41 = trace "LDrr_bc" $ Instruction (Clock 1 4) iLDrr_bc
+dispatch 0x42 = trace "LDrr_bd" $ Instruction (Clock 1 4) iLDrr_bd
+dispatch 0x43 = trace "LDrr_be" $ Instruction (Clock 1 4) iLDrr_be
+dispatch 0x44 = trace "LDrr_bh" $ Instruction (Clock 1 4) iLDrr_bh
+dispatch 0x45 = trace "LDrr_bl" $ Instruction (Clock 1 4) iLDrr_bl
+dispatch 0x46 = trace "LDrHLm_b" $ undefined
+dispatch 0x47 = trace "LDrr_ba" $ Instruction (Clock 1 4) iLDrr_ba
+dispatch 0x48 = trace "LDrr_cb" $ Instruction (Clock 1 4) iLDrr_cb
+dispatch 0x49 = trace "LDrr_cb" $ Instruction (Clock 1 4) iLDrr_cc
+dispatch 0x4A = trace "LDrr_cd" $ Instruction (Clock 1 4) iLDrr_cd
+
 dispatch 0xB8 = trace "CPr_b" $ Instruction (Clock 1 4) iCPr_b
 dispatch op   = error $ "Instruction not implemented : " ++ (show op)
 

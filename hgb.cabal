@@ -59,4 +59,7 @@ executable hgb
                        data-default   >= 0.5,
                        vector         >= 0.10,
                        mtl            >= 2.1,
-                       errors         >= 1.4.2
+                       errors         >= 1.4.2,
+                       bytestring     >= 0.10.0.2,
+                       -- Debug only :
+                       groom          >= 0.1

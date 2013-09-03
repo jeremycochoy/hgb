@@ -134,11 +134,11 @@ emptyMem :: [a] -> V.Vector Word8
 emptyMem = V.fromList . map (const 0)
 
 -- | The Virtual Machine
-data Vm = Vm { _vmCpu :: Cpu, _vmMmu :: Mmu, _vmCartridge :: Maybe CartridgeDesc}
+data Vm = Vm { _vmCpu :: Cpu, _vmMmu :: Mmu, _cartridge :: CartridgeDesc}
         deriving (Show, Eq)
 
 instance Default Vm where
-  def = Vm { _vmCpu = def, _vmMmu = def, _vmCartridge = Nothing }
+  def = Vm { _vmCpu = def, _vmMmu = def, _cartridge = def }
 
 type VmS = State Vm
 
@@ -195,11 +195,13 @@ data MBCType = ROM
 
 -- | Describe a cartridge
 data CartridgeDesc = CartridgeDesc
-  { cdTitle        :: String
-  , cdManufacturer :: String
-  , cdType         :: CartridgeType
+  { _title         :: String
+  , _manufacturer  :: String
+  , _cartridgeType :: CartridgeType
   } deriving (Show, Eq)
 
+instance Default CartridgeDesc where
+  def = CartridgeDesc {_title = "", _manufacturer = "", _cartridgeType = def}
 
 makeClassy ''Mmu
 makeClassy ''Vm
@@ -207,6 +209,7 @@ makeClassy ''Instruction
 makeClassy ''Cpu
 makeClassy ''Registers
 makeClassy ''Clock
+makeClassy ''CartridgeDesc
 
 instance HasCpu Vm where cpu = vmCpu
 instance HasMmu Vm where mmu = vmMmu

@@ -11,6 +11,7 @@ import qualified Data.Vector.Unboxed as V
 import           Data.Default (def)
 import           Control.Error.Safe
 import           Data.List (unfoldr)
+import           Control.Lens ((.~))
 
 getCartridgeType :: Word8 -> Maybe CartridgeType
 getCartridgeType 0x00 = Just $ def
@@ -75,8 +76,8 @@ describeCartridge mmu = do
 
 loadRom :: FilePath -> IO (Either String Vm)
 loadRom path = do
-  mmu <- mmuFromRomFile path
+  mmuE <- mmuFromRomFile path
   return $ do
-    mmu' <- mmu
-    cartridge' <- describeCartridge =<< mmu
-    Right $ def { _vmMmu = mmu', _vmCartridge = Just cartridge' }
+    mmu' <- mmuE
+    cartridge' <- describeCartridge mmu'
+    Right . (mmu .~ mmu') . (cartridge .~ cartridge') $ def
