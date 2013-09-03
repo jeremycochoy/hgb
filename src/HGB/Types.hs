@@ -1,12 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module HGB.Types where
+module HGB.Types
+    ( module HGB.Types
+    ) where
 
 import           Data.Word (Word8(..), Word16(..), Word(..))
 import           Control.Lens
-import           Data.Default
+import           Data.Default as HGB.Types
 import qualified Data.Vector.Unboxed as V
-import           Data.Vector.Unboxed ((!))
+-- We re-export the operator !
+import qualified Data.Vector.Unboxed as HGB.Types ((!))
 import           Control.Monad.State
 import           Data.Bits
 
@@ -66,25 +69,6 @@ instance Default Cpu where
     , _cpuClock = def
     }
 
-{-
-From: Pan Docs - nocash / kOOPa
-
-General Memory Map
-
-  0000-3FFF   16KB ROM Bank 00     (in cartridge, fixed at bank 00)
-  4000-7FFF   16KB ROM Bank 01..NN (in cartridge, switchable bank number)
-  8000-9FFF   8KB Video RAM (VRAM) (switchable bank 0-1 in CGB Mode)
-  A000-BFFF   8KB External RAM     (in cartridge, switchable bank, if any)
-  C000-CFFF   4KB Work RAM Bank 0 (WRAM)
-  D000-DFFF   4KB Work RAM Bank 1 (WRAM)  (switchable bank 1-7 in CGB Mode)
-  E000-FDFF   Same as C000-DDFF (ECHO)    (typically not used)
-  FE00-FE9F   Sprite Attribute Table (OAM)
-  FEA0-FEFF   Not Usable
-  FF00-FF7F   I/O Ports
-  FF80-FFFE   High RAM (HRAM)
-  FFFF        Interrupt Enable Register
--}
-
 -- | The MMU (memory)
 data Mmu = Mmu
   { _bios  :: !(V.Vector Word8)
@@ -142,10 +126,9 @@ instance Default Vm where
 
 type VmS = State Vm
 
-data Instruction = Instruction
-  { _iClock :: !Clock
-  , _iVmS   :: !(VmS ())
-  }
+-- | An Instruction is the work associated to an opcode
+--   It should "return" the time it took to complete.
+type Instruction = VmS Clock
 
 -- | Zero Flag
 fZ :: Word8
@@ -205,7 +188,6 @@ instance Default CartridgeDesc where
 
 makeClassy ''Mmu
 makeClassy ''Vm
-makeClassy ''Instruction
 makeClassy ''Cpu
 makeClassy ''Registers
 makeClassy ''Clock
@@ -217,5 +199,5 @@ instance HasRegisters Cpu where registers = cpuRegisters
 instance HasRegisters Vm where registers = vmCpu . cpuRegisters
 instance HasClock Cpu where clock = cpuClock
 instance HasClock Vm where clock = vmCpu . cpuClock
-instance HasClock Instruction where clock = iClock
+
 
