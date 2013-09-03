@@ -130,11 +130,11 @@ iNOP = mkClock 1 4
 -- LD Dst Src
 
 -- | LD Register <- Register
-iLDrr :: ASetter Registers Registers a b -> Getting b Registers b -> VmS Clock
+iLDrr :: ASetter' Registers a -> Getting a Registers a -> VmS Clock
 iLDrr output input = registers . output <~ use (registers . input) >> mkClock 1 4
 
 -- | LD Register <- read MMU at H:L
-iLDrHLm :: ASetter Registers Registers Word8 Word8 -> VmS Clock
+iLDrHLm :: ASetter' Registers Word8 -> VmS Clock
 iLDrHLm r = (registers . r <~ readHLm) >> (mkClock 1 8)
 
 readHLm :: VmS Word8
