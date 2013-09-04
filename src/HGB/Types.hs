@@ -197,9 +197,9 @@ makeClassy ''CartridgeDesc
 
 instance HasCpu Vm where cpu = vmCpu
 instance HasMmu Vm where mmu = vmMmu
-instance HasRegisters Cpu where registers = cpuRegisters
 instance HasRegisters Vm where registers = vmCpu . cpuRegisters
-instance HasClock Cpu where clock = cpuClock
 instance HasClock Vm where clock = vmCpu . cpuClock
+instance HasRegisters Cpu where registers = cpuRegisters
+instance HasClock Cpu where clock = cpuClock
 
 

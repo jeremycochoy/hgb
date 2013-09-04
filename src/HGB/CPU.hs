@@ -5,6 +5,7 @@ module HGB.CPU where
 import           Data.Word (Word8(..), Word16(..), Word(..))
 import           Control.Lens
 import           Control.Monad.State
+import           Control.Applicative
 import           Data.Default
 import           Data.Bits
 import           Data.Bits.Lens
@@ -38,78 +39,80 @@ exec = do
   return ()
 
 dispatch :: Word8 -> Instruction
-dispatch 0x00 = trace "nop"      $ iNOP
+dispatch 0x00 = trace "NOP"      $ iNOP
 
-dispatch 0x31 = trace "LDSPd16"  $ iLDSPd16
+dispatch 0x21 = trace "LDSPd16"  $ iLDld16 (registers . lHL)
 
-dispatch 0x40 = trace "LDrr_bb"  $ iLDrr b b
-dispatch 0x41 = trace "LDrr_bc"  $ iLDrr b c
-dispatch 0x42 = trace "LDrr_bd"  $ iLDrr b d
-dispatch 0x43 = trace "LDrr_be"  $ iLDrr b e
-dispatch 0x44 = trace "LDrr_bh"  $ iLDrr b h
-dispatch 0x45 = trace "LDrr_bl"  $ iLDrr b l
-dispatch 0x46 = trace "LDrHLm_b" $ iLDrHLm b
-dispatch 0x47 = trace "LDrr_ba"  $ iLDrr b a
-dispatch 0x48 = trace "LDrr_cb"  $ iLDrr c b
-dispatch 0x49 = trace "LDrr_cc"  $ iLDrr c c
-dispatch 0x4A = trace "LDrr_cd"  $ iLDrr c d
-dispatch 0x4B = trace "LDrr_ce"  $ iLDrr c e
-dispatch 0x4C = trace "LDrr_ch"  $ iLDrr c h
-dispatch 0x4D = trace "LDrr_cl"  $ iLDrr c l
-dispatch 0x4E = trace "LDrHLm_c" $ iLDrHLm c
-dispatch 0x4F = trace "LDrr_ca"  $ iLDrr c a
+dispatch 0x31 = trace "LDSPd16"  $ iLDld16 (registers . lSP)
 
-dispatch 0x50 = trace "LDrr_db"  $ iLDrr d b
-dispatch 0x51 = trace "LDrr_dc"  $ iLDrr d c
-dispatch 0x52 = trace "LDrr_dd"  $ iLDrr d d
-dispatch 0x53 = trace "LDrr_de"  $ iLDrr d e
-dispatch 0x54 = trace "LDrr_dh"  $ iLDrr d h
-dispatch 0x55 = trace "LDrr_dl"  $ iLDrr d l
-dispatch 0x56 = trace "LDrHLm_d" $ iLDrHLm d
-dispatch 0x57 = trace "LDrr_da"  $ iLDrr d a
-dispatch 0x58 = trace "LDrr_eb"  $ iLDrr e b
-dispatch 0x59 = trace "LDrr_ec"  $ iLDrr e c
-dispatch 0x5A = trace "LDrr_ed"  $ iLDrr e d
-dispatch 0x5B = trace "LDrr_ee"  $ iLDrr e e
-dispatch 0x5C = trace "LDrr_eh"  $ iLDrr e h
-dispatch 0x5D = trace "LDrr_el"  $ iLDrr e l
-dispatch 0x5E = trace "LDrHLm_e" $ iLDrHLm e
-dispatch 0x5F = trace "LDrr_ea"  $ iLDrr e a
+dispatch 0x40 = trace "LDrr_bb"  $ iLD b b
+dispatch 0x41 = trace "LDrr_bc"  $ iLD b c
+dispatch 0x42 = trace "LDrr_bd"  $ iLD b d
+dispatch 0x43 = trace "LDrr_be"  $ iLD b e
+dispatch 0x44 = trace "LDrr_bh"  $ iLD b h
+dispatch 0x45 = trace "LDrr_bl"  $ iLD b l
+dispatch 0x46 = trace "LDrHLm_b" $ iLD lHLm b
+dispatch 0x47 = trace "LDrr_ba"  $ iLD b a
+dispatch 0x48 = trace "LDrr_cb"  $ iLD c b
+dispatch 0x49 = trace "LDrr_cc"  $ iLD c c
+dispatch 0x4A = trace "LDrr_cd"  $ iLD c d
+dispatch 0x4B = trace "LDrr_ce"  $ iLD c e
+dispatch 0x4C = trace "LDrr_ch"  $ iLD c h
+dispatch 0x4D = trace "LDrr_cl"  $ iLD c l
+dispatch 0x4E = trace "LDrHLm_c" $ iLD lHLm c
+dispatch 0x4F = trace "LDrr_ca"  $ iLD c a
 
-dispatch 0x60 = trace "LDrr_hb"  $ iLDrr h b
-dispatch 0x61 = trace "LDrr_hc"  $ iLDrr h c
-dispatch 0x62 = trace "LDrr_hd"  $ iLDrr h d
-dispatch 0x63 = trace "LDrr_he"  $ iLDrr h e
-dispatch 0x64 = trace "LDrr_hh"  $ iLDrr h h
-dispatch 0x65 = trace "LDrr_hl"  $ iLDrr h l
-dispatch 0x66 = trace "LDrHLm_h" $ iLDrHLm h
-dispatch 0x67 = trace "LDrr_ha"  $ iLDrr h a
-dispatch 0x68 = trace "LDrr_lb"  $ iLDrr l b
-dispatch 0x69 = trace "LDrr_lc"  $ iLDrr l c
-dispatch 0x6A = trace "LDrr_ld"  $ iLDrr l d
-dispatch 0x6B = trace "LDrr_le"  $ iLDrr l e
-dispatch 0x6C = trace "LDrr_lh"  $ iLDrr l h
-dispatch 0x6D = trace "LDrr_ll"  $ iLDrr l l
-dispatch 0x6E = trace "LDrHLm_l" $ iLDrHLm l
-dispatch 0x6F = trace "LDrr_la"  $ iLDrr l a
+dispatch 0x50 = trace "LDrr_db"  $ iLD d b
+dispatch 0x51 = trace "LDrr_dc"  $ iLD d c
+dispatch 0x52 = trace "LDrr_dd"  $ iLD d d
+dispatch 0x53 = trace "LDrr_de"  $ iLD d e
+dispatch 0x54 = trace "LDrr_dh"  $ iLD d h
+dispatch 0x55 = trace "LDrr_dl"  $ iLD d l
+dispatch 0x56 = trace "LDrHLm_d" $ iLD lHLm d
+dispatch 0x57 = trace "LDrr_da"  $ iLD d a
+dispatch 0x58 = trace "LDrr_eb"  $ iLD e b
+dispatch 0x59 = trace "LDrr_ec"  $ iLD e c
+dispatch 0x5A = trace "LDrr_ed"  $ iLD e d
+dispatch 0x5B = trace "LDrr_ee"  $ iLD e e
+dispatch 0x5C = trace "LDrr_eh"  $ iLD e h
+dispatch 0x5D = trace "LDrr_el"  $ iLD e l
+dispatch 0x5E = trace "LDrHLm_e" $ iLD lHLm e
+dispatch 0x5F = trace "LDrr_ea"  $ iLD e a
 
-dispatch 0x70 = trace "LDHLmr_b" $ iLDHLmr b
-dispatch 0x71 = trace "LDHLmr_c" $ iLDHLmr c
-dispatch 0x72 = trace "LDHLmr_d" $ iLDHLmr d
-dispatch 0x73 = trace "LDHLmr_e" $ iLDHLmr e
-dispatch 0x74 = trace "LDHLmr_h" $ iLDHLmr h
-dispatch 0x75 = trace "LDHLmr_l" $ iLDHLmr l
+dispatch 0x60 = trace "LDrr_hb"  $ iLD h b
+dispatch 0x61 = trace "LDrr_hc"  $ iLD h c
+dispatch 0x62 = trace "LDrr_hd"  $ iLD h d
+dispatch 0x63 = trace "LDrr_he"  $ iLD h e
+dispatch 0x64 = trace "LDrr_hh"  $ iLD h h
+dispatch 0x65 = trace "LDrr_hl"  $ iLD h l
+dispatch 0x66 = trace "LDrHLm_h" $ iLD lHLm h
+dispatch 0x67 = trace "LDrr_ha"  $ iLD h a
+dispatch 0x68 = trace "LDrr_lb"  $ iLD l b
+dispatch 0x69 = trace "LDrr_lc"  $ iLD l c
+dispatch 0x6A = trace "LDrr_ld"  $ iLD l d
+dispatch 0x6B = trace "LDrr_le"  $ iLD l e
+dispatch 0x6C = trace "LDrr_lh"  $ iLD l h
+dispatch 0x6D = trace "LDrr_ll"  $ iLD l l
+dispatch 0x6E = trace "LDrHLm_l" $ iLD lHLm l
+dispatch 0x6F = trace "LDrr_la"  $ iLD l a
+
+dispatch 0x70 = trace "LDHLmr_b" $ iLD lHLm b
+dispatch 0x71 = trace "LDHLmr_c" $ iLD lHLm c
+dispatch 0x72 = trace "LDHLmr_d" $ iLD lHLm d
+dispatch 0x73 = trace "LDHLmr_e" $ iLD lHLm e
+dispatch 0x74 = trace "LDHLmr_h" $ iLD lHLm h
+dispatch 0x75 = trace "LDHLmr_l" $ iLD lHLm l
 dispatch 0x76 = trace "halt"     $ undefined
-dispatch 0x77 = trace "LDHLmr_c" $ iLDHLmr a
+dispatch 0x77 = trace "LDHLmr_c" $ iLD lHLm a
 
-dispatch 0x78 = trace "LDrr_lb"  $ iLDrr a b
-dispatch 0x79 = trace "LDrr_lc"  $ iLDrr a c
-dispatch 0x7A = trace "LDrr_ld"  $ iLDrr a d
-dispatch 0x7B = trace "LDrr_le"  $ iLDrr a e
-dispatch 0x7C = trace "LDrr_lh"  $ iLDrr a h
-dispatch 0x7D = trace "LDrr_ll"  $ iLDrr a l
-dispatch 0x7E = trace "LDrHLm_a" $ iLDrHLm a
-dispatch 0x7F = trace "LDrr_aa"  $ iLDrr a a
+dispatch 0x78 = trace "LDrr_lb"  $ iLD a b
+dispatch 0x79 = trace "LDrr_lc"  $ iLD a c
+dispatch 0x7A = trace "LDrr_ld"  $ iLD a d
+dispatch 0x7B = trace "LDrr_le"  $ iLD a e
+dispatch 0x7C = trace "LDrr_lh"  $ iLD a h
+dispatch 0x7D = trace "LDrr_ll"  $ iLD a l
+dispatch 0x7E = trace "LDrHLm_a" $ iLD lHLm a
+dispatch 0x7F = trace "LDrr_aa"  $ iLD a a
 
 dispatch 0xB8 = trace "CPr_b" $ iCPr_b >> mkClock 1 4
 dispatch op   = error $ "Instruction not implemented : " ++ (printf "0x%02x" op)
@@ -117,14 +120,12 @@ dispatch op   = error $ "Instruction not implemented : " ++ (printf "0x%02x" op)
 -- | Set underflow flag if true
 underflow :: Bool -> VmS ()
 underflow b = do
-  -- Underflow
   case b of
     True  -> f .|.= fC
     False -> return ()
 -- | Set the zero flag if null
 zero :: Word8 -> VmS ()
 zero w = do
-  -- w is null
   case w of
     0 -> f .|.= fZ >> return ()
     _ -> return ()
@@ -136,48 +137,62 @@ halfcarry b = do
     True  -> f .|.= fH
     False -> return ()
 
--- | A lot of instruction take 1 / 4 to complete.
+-- | Create a Clock in the VmS monad
 mkClock :: Word -> Word -> VmS Clock
 mkClock mV tV = return $ Clock mV tV
 
 -- | No OPeration
 iNOP = mkClock 1 4
 
+-- | LD instruction that can be used with any Lens' Vm b
+-- | Syntax : `LD Dst Src`
+-- > LD (Register | (HL) ) <- (Register | HL)
+iLD :: ASetter' Vm b -> Getting b Vm b -> VmS Clock
+iLD output input = output <~ use (input) >> mkClock 1 4
 
--- LD Dst Src
+-- | Read from (RR) : The value at location r:r
+readRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8
+readRRm h' l' vm = rb idx (vm ^. mmu)
+  where idx = readRR h' l' (vm ^. registers)
 
--- | LD Register <- Register
-iLDrr :: ASetter' Registers Word8 -> Getting Word8 Registers Word8 -> VmS Clock
-iLDrr output input = registers . output <~ use (registers . input) >> mkClock 1 4
+-- | Write on (RR) : Write at location r:r
+writeRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8 -> Vm
+writeRRm h' l' vm v = mmu %~ (wb idx v) $ vm
+  where idx = readRR h' l' (vm ^. registers)
 
--- | LD Register <- MMU at H:L
-iLDrHLm :: ASetter' Registers Word8 -> VmS Clock
-iLDrHLm r = (registers . r <~ readHLm) >> (mkClock 1 8)
+-- | (HL) saw as a lens
+lHLm :: Lens' Vm Word8
+lHLm f vm = (writeRRm h l vm) <$> f (readRRm h l vm)
 
-readHLm :: VmS Word8
-readHLm = do
-  idx <- getHLaddr
-  (rb idx) `liftM` (use mmu)
+-- | HL saw as a lens
+lHL :: Lens' Registers Word16
+lHL f reg = (writeRR h l reg) <$> f (readRR h l reg)
 
--- | LD MMU at H:L <- Register
-iLDHLmr :: Getting Word8 Registers Word8 -> VmS Clock
-iLDHLmr r = use (registers . r) >>= writeHLm >> (mkClock 1 8)
+-- | SP saw as a lens
+lSP :: Lens' Registers Word16
+lSP f reg = (flip `fmap` set) sp reg <$> f (reg ^. sp)
 
-writeHLm :: Word8 -> VmS ()
-writeHLm v = do
-  idx <- getHLaddr
-  mmu %= (wb idx v)
+-- | LD (SP | HL | DE | BC) <- immediate Word16
+iLDld16 :: ASetter' Vm Word16 -> VmS Clock
+iLDld16 output = output <~ readProgramW >> (mkClock 3 12)
 
--- | LD SP <- immediate Word16
-iLDSPd16 :: VmS Clock
-iLDSPd16 = sp <~ readProgramW >> (mkClock 3 12)
+-- | Compute r:r as a 16 bits addr
+readRR :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Registers ->  Word16
+readRR h' l' reg = wCombine (reg ^. h') (reg ^. l')
+
+-- | Compute r:r as a 16 bits addr
+writeRR :: ASetter' Registers Word8 -> ASetter' Registers Word8 -> Registers -> Word16 -> Registers
+writeRR h' l' reg v = h' .~ (fromIntegral $ shiftR v 8) $
+                      l' .~ (fromIntegral v) $ reg
 
 -- | Compute h:l as a 16 bits addr
-getHLaddr :: VmS Word16
-getHLaddr = do
-  h' <- use h
-  l' <- use l
-  return $ wCombine h' l'
+readDE :: Registers ->  Word16
+readDE reg = wCombine (reg ^. d) (reg ^. l)
+
+-- | Compute h:l as a 16 bits addr
+writeDE :: Registers -> Word16 -> Registers
+writeDE reg v = reg {_l = fromIntegral $ shiftR v 8, _h = fromIntegral v}
+
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()
