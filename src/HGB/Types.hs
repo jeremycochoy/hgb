@@ -30,6 +30,8 @@ data Registers = Registers
     -- ^ Stack Pointer
   } deriving (Show, Eq)
 
+wCombine :: Word8 -> Word8 -> Word16
+wCombine h l = (shiftL (fromIntegral h) 8) .|. (fromIntegral l)
 
 instance Default Registers where
   def = Registers

@@ -35,7 +35,7 @@ rb addr m = (m ^. bios) ! (fromIntegral addr)
 
 -- | Read a word from MMU (TODO)
 rw :: Word16 -> Mmu -> Word16
-rw _ _ = 0
+rw addr m = wCombine (flip rb m $ addr + 1) (rb addr m)
 
 -- | Write a byte from MMU (TODO)
 wb :: Word16 -> Word8 -> Mmu -> Mmu

@@ -11,19 +11,26 @@ import           Data.Bits.Lens
 import           HGB.Types
 import           HGB.MMU
 import           Debug.Trace
+import           Text.Printf (printf)
 
 -- | Read the byte pointed by PC and increment it
-readProgramByte :: VmS Word8
-readProgramByte = do
+readProgramB :: VmS Word8
+readProgramB = do
   pc' <- use $ pc
-  byte <- (rb pc') `liftM` (use mmu)
   pc += 1
-  return byte
+  (rb pc') `liftM` (use mmu)
+
+-- | Read the byte pointed by PC and increment it
+readProgramW :: VmS Word16
+readProgramW = do
+  pc' <- use $ pc
+  pc += 2
+  (rw pc') `liftM` (use mmu)
 
 -- | Execute exactly one instruction
 exec :: VmS ()
 exec = do
-  inst <- dispatch =<< readProgramByte
+  inst <- dispatch =<< readProgramB
 
   t += inst ^. t
   m += inst ^. m
@@ -32,6 +39,9 @@ exec = do
 
 dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "nop"      $ iNOP
+
+dispatch 0x31 = trace "LDSPd16"  $ iLDSPd16
+
 dispatch 0x40 = trace "LDrr_bb"  $ iLDrr b b
 dispatch 0x41 = trace "LDrr_bc"  $ iLDrr b c
 dispatch 0x42 = trace "LDrr_bd"  $ iLDrr b d
@@ -48,6 +58,7 @@ dispatch 0x4C = trace "LDrr_ch"  $ iLDrr c h
 dispatch 0x4D = trace "LDrr_cl"  $ iLDrr c l
 dispatch 0x4E = trace "LDrHLm_c" $ iLDrHLm c
 dispatch 0x4F = trace "LDrr_ca"  $ iLDrr c a
+
 dispatch 0x50 = trace "LDrr_db"  $ iLDrr d b
 dispatch 0x51 = trace "LDrr_dc"  $ iLDrr d c
 dispatch 0x52 = trace "LDrr_dd"  $ iLDrr d d
@@ -64,6 +75,7 @@ dispatch 0x5C = trace "LDrr_eh"  $ iLDrr e h
 dispatch 0x5D = trace "LDrr_el"  $ iLDrr e l
 dispatch 0x5E = trace "LDrHLm_e" $ iLDrHLm e
 dispatch 0x5F = trace "LDrr_ea"  $ iLDrr e a
+
 dispatch 0x60 = trace "LDrr_hb"  $ iLDrr h b
 dispatch 0x61 = trace "LDrr_hc"  $ iLDrr h c
 dispatch 0x62 = trace "LDrr_hd"  $ iLDrr h d
@@ -81,7 +93,14 @@ dispatch 0x6D = trace "LDrr_ll"  $ iLDrr l l
 dispatch 0x6E = trace "LDrHLm_l" $ iLDrHLm l
 dispatch 0x6F = trace "LDrr_la"  $ iLDrr l a
 
+dispatch 0x70 = trace "LDHLmr_b" $ iLDHLmr b
+dispatch 0x71 = trace "LDHLmr_c" $ iLDHLmr c
+dispatch 0x72 = trace "LDHLmr_d" $ iLDHLmr d
+dispatch 0x73 = trace "LDHLmr_e" $ iLDHLmr e
+dispatch 0x74 = trace "LDHLmr_h" $ iLDHLmr h
+dispatch 0x75 = trace "LDHLmr_l" $ iLDHLmr l
 dispatch 0x76 = trace "halt"     $ undefined
+dispatch 0x77 = trace "LDHLmr_c" $ iLDHLmr a
 
 dispatch 0x78 = trace "LDrr_lb"  $ iLDrr a b
 dispatch 0x79 = trace "LDrr_lc"  $ iLDrr a c
@@ -92,10 +111,8 @@ dispatch 0x7D = trace "LDrr_ll"  $ iLDrr a l
 dispatch 0x7E = trace "LDrHLm_a" $ iLDrHLm a
 dispatch 0x7F = trace "LDrr_aa"  $ iLDrr a a
 
-
-
 dispatch 0xB8 = trace "CPr_b" $ iCPr_b >> mkClock 1 4
-dispatch op   = error $ "Instruction not implemented : " ++ (show op)
+dispatch op   = error $ "Instruction not implemented : " ++ (printf "0x%02x" op)
 
 -- | Set underflow flag if true
 underflow :: Bool -> VmS ()
@@ -130,29 +147,37 @@ iNOP = mkClock 1 4
 -- LD Dst Src
 
 -- | LD Register <- Register
-iLDrr :: ASetter' Registers a -> Getting a Registers a -> VmS Clock
+iLDrr :: ASetter' Registers Word8 -> Getting Word8 Registers Word8 -> VmS Clock
 iLDrr output input = registers . output <~ use (registers . input) >> mkClock 1 4
 
--- | LD Register <- read MMU at H:L
+-- | LD Register <- MMU at H:L
 iLDrHLm :: ASetter' Registers Word8 -> VmS Clock
 iLDrHLm r = (registers . r <~ readHLm) >> (mkClock 1 8)
 
 readHLm :: VmS Word8
 readHLm = do
-  h' <- use h
-  l' <- use l
-  -- Compute a 16 bits addr as h:l
-  let idx = ((shiftL (fromIntegral h') 8) + (fromIntegral l')) :: Word16
+  idx <- getHLaddr
   (rb idx) `liftM` (use mmu)
+
+-- | LD MMU at H:L <- Register
+iLDHLmr :: Getting Word8 Registers Word8 -> VmS Clock
+iLDHLmr r = use (registers . r) >>= writeHLm >> (mkClock 1 8)
 
 writeHLm :: Word8 -> VmS ()
 writeHLm v = do
-  h' <- use h
-  l' <- use l
-  -- Compute a 16 bits addr as h:l
-  let idx = ((shiftL (fromIntegral h') 8) + (fromIntegral l')) :: Word16
+  idx <- getHLaddr
   mmu %= (wb idx v)
 
+-- | LD SP <- immediate Word16
+iLDSPd16 :: VmS Clock
+iLDSPd16 = sp <~ readProgramW >> (mkClock 3 12)
+
+-- | Compute h:l as a 16 bits addr
+getHLaddr :: VmS Word16
+getHLaddr = do
+  h' <- use h
+  l' <- use l
+  return $ wCombine h' l'
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()
