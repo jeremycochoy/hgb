@@ -20,7 +20,8 @@ main = do
         Left msg   -> putStrLn msg
         Right vm'' -> do
           putStrLn "Game loaded:"
-          putStrLn . groom $ (vm'' ^. cartridge)
+          putStrLn . groom $ vm'' ^. cartridge
+          putStrLn . groom $ vm'' ^. cpu
           putStrLn "Mode step by step. Press enter to continue."
           runStep vm''
 
