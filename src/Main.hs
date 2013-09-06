@@ -19,11 +19,9 @@ main = do
       case vm' of
         Left msg   -> putStrLn msg
         Right vm'' -> do
-          putStrLn "Game loaded:"
           putStrLn . groom $ vm'' ^. cartridge
           putStrLn . groom $ vm'' ^. cpu
-          putStrLn "Mode step by step. Press enter to continue."
-          runStep vm''
+          runStep' vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -35,3 +33,10 @@ runStep oldVm = do
   putStrLn . groom $ newVM ^. cpu
   -- Loop
   runStep newVM
+
+runStep' :: Vm -> IO ()
+runStep' oldVm = do
+  newVM <- return . execState exec $ oldVm
+  putStr . show $ newVM ^. registers
+  putStr "\r"
+  newVM `seq` runStep' newVM

@@ -12,8 +12,11 @@ import           Data.Bits
 import           Data.Bits.Lens
 import           HGB.Types
 import           HGB.MMU
-import           Debug.Trace
+--import           Debug.Trace
 import           Text.Printf (printf)
+
+trace :: String -> a -> a
+trace _ a = a
 
 -- | Read the byte pointed by PC and increment it
 readProgramB :: VmS Word8
@@ -42,21 +45,34 @@ exec = do
 -- | Select the right instruction from the opcode.
 dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "NOP"      $ iNOP
-dispatch 0x01 = trace "LDSPd16"  $ iLDld16 (lRR b c)
+dispatch 0x01 = trace "LDSPd16"  $ iLDd16 (lRR b c)
 dispatch 0x02 = trace "LDBCma"   $ iLDHL lBCm a
+dispatch 0x06 = trace "LDbd8"    $ iLDd8 b
 dispatch 0x0A = trace "LDaBCm"   $ iLDHL a lBCm
+dispatch 0x0E = trace "LDcd8"    $ iLDd8 c
 
-dispatch 0x11 = trace "LDSPd16"  $ iLDld16 (lRR d e)
+dispatch 0x11 = trace "LDSPd16"  $ iLDd16 (lRR d e)
 dispatch 0x12 = trace "LDDEma"   $ iLDHL lDEm a
+dispatch 0x16 = trace "LDdd8"    $ iLDd8 d
+dispatch 0x18 = trace "JRr8"     $ iJR
 dispatch 0x1A = trace "LDaDEm"   $ iLDHL a lDEm
+dispatch 0x1E = trace "LDed8"    $ iLDd8 e
 
-dispatch 0x21 = trace "LDSPd16"  $ iLDld16 (lRR h l)
+dispatch 0x20 = trace "JRNZr8"   $ iJRf lNZf
+dispatch 0x21 = trace "LDSPd16"  $ iLDd16 (lRR h l)
 dispatch 0x22 = trace "LDIHLma"  $ iLDI lHLm a
+dispatch 0x26 = trace "LDhd8"    $ iLDd8 h
+dispatch 0x28 = trace "JRZr8"    $ iJRf lZf
 dispatch 0x2A = trace "LDIaHLm"  $ iLDI a lHLm
+dispatch 0x2E = trace "LDld8"    $ iLDd8 l
 
-dispatch 0x31 = trace "LDSPd16"  $ iLDld16 (lSP)
-dispatch 0x32 = trace "LDIHLma"  $ iLDD lHLm a
+dispatch 0x30 = trace "JRNCr8"   $ iJRf lNCf
+dispatch 0x31 = trace "LDSPd16"  $ iLDd16 (lSP)
+dispatch 0x32 = trace "LDDHLma"  $ iLDD lHLm a
+dispatch 0x36 = trace "LDHLmd8"  $ iLDHLd8 lHLm
+dispatch 0x38 = trace "JRCr8"    $ iJRf lCf
 dispatch 0x3A = trace "LDIaHLm"  $ iLDD a lHLm
+dispatch 0x3E = trace "LDad8"    $ iLDd8 a
 
 dispatch 0x40 = trace "LDbb"     $ iLD b b
 dispatch 0x41 = trace "LDbc"     $ iLD b c
@@ -274,8 +290,16 @@ iLDmod mod output input = do
   mkClock 1 8
 
 -- | LD (SP | HL | DE | BC) <- immediate Word16
-iLDld16 :: ASetter' Vm Word16 -> VmS Clock
-iLDld16 output = output <~ readProgramW >> (mkClock 3 12)
+iLDd16 :: ASetter' Vm Word16 -> VmS Clock
+iLDd16 output = output <~ readProgramW >> (mkClock 3 12)
+
+-- | LD Register <- immediate Word8
+iLDd8 :: ASetter' Registers Word8 -> VmS Clock
+iLDd8 output = registers . output <~ readProgramB >> (mkClock 2 8)
+
+-- | LD Register <- immediate Word8
+iLDHLd8 :: ASetter' Vm Word8 -> VmS Clock
+iLDHLd8 output = output <~ readProgramB >> (mkClock 2 12)
 
 -- | XOR the register 'a' with a register 'R' into 'a'
 --   Syntax : `XOR Src`
@@ -300,17 +324,19 @@ iPrefCB = do
 -- | Read the byte pointed by CP and at it to SP
 iJR :: VmS Clock
 iJR = do
-  byte <- fromIntegral `liftM` readProgramB
-  pc += byte;
+  byte <- readProgramB
+  -- byte is a signed value
+  case byte > 127 of
+    False -> pc += (fromIntegral $ byte)
+    True  -> pc -= (fromIntegral $ complement byte + 1)
   mkClock 2 12
 
 iJRf :: Getting Bool Registers Bool -> VmS Clock
 iJRf flag = do
-  jmpAddr <- fromIntegral `liftM` readProgramB
   shouldJump <- use $ registers . flag
   case shouldJump of
-    True  -> sp += jmpAddr >> mkClock 2 12
-    False -> mkClock 2 8
+    True  -> iJR
+    False -> readProgramB >> mkClock 2 8
 
 -- | The BIT instruction check if the nth bit is set, by setting/unsetting
 --   the zero flag.
@@ -358,6 +384,14 @@ lNf = lFlag fN
 lCf :: HasRegisters t => Lens' t Bool
 lCf = lFlag fC
 
+-- | not Z flag saw as a lens
+lNZf :: HasRegisters t => Lens' t Bool
+lNZf = lNFlag lZf
+
+-- | not N flag saw as a lens
+lNCf :: HasRegisters t => Lens' t Bool
+lNCf = lNFlag lCf
+
 -- | Flag saw as a lens
 lFlag :: HasRegisters t => Word8 -> Lens' t Bool
 lFlag flag f' reg = writeFlag <$> f' readFlag
@@ -366,6 +400,11 @@ lFlag flag f' reg = writeFlag <$> f' readFlag
     writeFlag val = case val of
       False -> f .&.~ (complement flag) $ reg
       True -> f .|.~ flag $ reg
+
+-- | Flag saw as a lens (with value negated by "not")
+lNFlag :: HasRegisters t => Lens' Registers Bool -> Lens' t Bool
+lNFlag fl f reg = (set (registers . fl) ?? reg) . not <$>
+                  f (not $ reg ^. registers . fl)
 
 -- | (BC) saw as a lens
 lBCm :: Lens' Vm Word8
@@ -387,7 +426,7 @@ lRR h' l' f reg = writeRR (cloneLens h') (cloneLens l') reg <$>
 
 -- | SP saw as a lens
 lSP :: HasRegisters r => Lens' r Word16
-lSP f reg = (flip `fmap` set) (registers . sp) reg <$> f (reg ^. registers . sp)
+lSP f reg = (set (registers . sp) ?? reg) <$> f (reg ^. registers . sp)
 
 -- | Compute r:r as a 16 bits addr
 readRR :: HasRegisters r => Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> r ->  Word16
