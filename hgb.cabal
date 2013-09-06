@@ -15,10 +15,12 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs: src
+  ghc-options: -Wall
   exposed-modules:     HGB.Types,
                        HGB.MMU,
                        HGB.CPU,
-                       HGB.Cartridge
+                       HGB.Cartridge,
+                       HGB.Lens
 
   build-depends:       base           == 4.6.*,
                        lens           >= 3.9,

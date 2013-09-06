@@ -1,12 +1,10 @@
-{-# LANGUAGE TemplateHaskell #-}
-
+{-# LANGUAGE Rank2Types      #-}
 module HGB.CPU where
 
-import           Data.Word (Word8(..), Word16(..), Word(..))
+import           Data.Word (Word8, Word16, Word)
 import           Control.Lens
 import           Control.Monad.State
 import           Control.Applicative
-import           Data.Default
 import           HGB.Types
 import           HGB.MMU
 import           HGB.Lens
@@ -15,7 +13,7 @@ import           Data.Bits
 import           Text.Printf (printf)
 
 trace :: String -> a -> a
-trace _ a = a
+trace _ x = x
 
 -- | Read the byte pointed by PC and increment it
 readProgramB :: VmS Word8
@@ -166,7 +164,7 @@ dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
 dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
 
-dispatch op   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op)
+dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op')
 
 -- | The instruction CB allow access to "bits instructions".
 --   This function call the right bit instruction from the opcode.
@@ -240,7 +238,7 @@ dispatchCB 0x7D = trace "BIT7l"   $ iBIT 7 l
 dispatchCB 0x7E = trace "BIT7HLm" $ iBITHL 7 lHLm
 dispatchCB 0x7F = trace "BIT7a"   $ iBIT 7 a
 
-dispatchCB op = error $ "Pefix CB not implemented for: " ++ (printf "0x%02x" op)
+dispatchCB op' = error $ "Pefix CB not implemented for: " ++ (printf "0x%02x" op')
 
 -- | Reset the flags to 0
 fReset :: VmS ()
@@ -255,6 +253,7 @@ addClock :: Word -> Word -> Clock -> Clock
 addClock mV tV clk = (m +~ mV) $ (t +~ tV) $ clk
 
 -- | No OPeration
+iNOP :: VmS Clock
 iNOP = mkClock 1 4
 
 -- | LD instruction that can be used with any Lens' Vm b
@@ -294,9 +293,9 @@ iLDD =iLDmod (-1)
 
 -- | Implementation of LDD/LDI where mod should be (-1)/(+1)
 iLDmod :: Word16 -> ASetter' Vm b -> Getting b Vm b -> VmS Clock
-iLDmod mod output input = do
+iLDmod mod' output input = do
   output <~ use (input)
-  lRR h l += mod
+  lRR h l += mod'
   mkClock 1 8
 
 -- | LD (SP | HL | DE | BC) <- immediate Word16

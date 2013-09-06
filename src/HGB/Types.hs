@@ -4,7 +4,7 @@ module HGB.Types
     ( module HGB.Types
     ) where
 
-import           Data.Word (Word8(..), Word16(..), Word(..))
+import           Data.Word (Word8, Word16, Word)
 import           Control.Lens
 import           Data.Default as HGB.Types
 import qualified Data.Vector.Unboxed as V
@@ -116,7 +116,7 @@ instance Default Mmu where
     }
 
 -- | Replace the each element of the list by a null byte
-emptyMem :: [a] -> V.Vector Word8
+emptyMem :: [Integer] -> V.Vector Word8
 emptyMem = V.fromList . map (const 0)
 
 -- | The Virtual Machine

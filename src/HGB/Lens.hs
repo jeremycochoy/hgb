@@ -6,7 +6,7 @@ import           Control.Lens
 import           HGB.Types
 import           HGB.MMU
 import           Control.Applicative
-import           Data.Word (Word8(..), Word16(..), Word(..))
+import           Data.Word (Word8, Word16)
 import           Data.Bits
 import           Data.Bits.Lens
 
@@ -45,8 +45,8 @@ lFlag flag f' reg = writeFlag <$> f' readFlag
 
 -- | Flag saw as a lens (with value negated by "not")
 lNFlag :: HasRegisters t => Lens' Registers Bool -> Lens' t Bool
-lNFlag fl f reg = (set (registers . fl) ?? reg) . not <$>
-                  f (not $ reg ^. registers . fl)
+lNFlag fl f' reg = (set (registers . fl) ?? reg) . not <$>
+                  f' (not $ reg ^. registers . fl)
 
 -- | (BC) saw as a lens
 lBCm :: Lens' Vm Word8
@@ -79,17 +79,17 @@ lAF = lRR a f
 
 -- | (RR) saw as a lens
 lRRm :: ALens' Registers Word8 -> ALens' Registers Word8 -> Lens' Vm Word8
-lRRm h' l' f vm = (writeRRm (cloneLens h') (cloneLens l') vm) <$>
-                  f (readRRm (cloneLens h') (cloneLens l') vm)
+lRRm h' l' f' vm' = (writeRRm (cloneLens h') (cloneLens l') vm') <$>
+                  f' (readRRm (cloneLens h') (cloneLens l') vm')
 
 -- | RR (where R means a register) saw as a lens
 lRR :: HasRegisters r => ALens' Registers Word8 -> ALens' Registers Word8 -> Lens' r Word16
-lRR h' l' f reg = writeRR (cloneLens h') (cloneLens l') reg <$>
-                  f (readRR (cloneLens h') (cloneLens l') reg)
+lRR h' l' f' reg = writeRR (cloneLens h') (cloneLens l') reg <$>
+                  f' (readRR (cloneLens h') (cloneLens l') reg)
 
 -- | SP saw as a lens
 lSP :: HasRegisters r => Lens' r Word16
-lSP f reg = (set (registers . sp) ?? reg) <$> f (reg ^. registers . sp)
+lSP f' reg = (set (registers . sp) ?? reg) <$> f' (reg ^. registers . sp)
 
 -- | Compute r:r as a 16 bits addr
 readRR :: HasRegisters r => Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> r ->  Word16
@@ -102,10 +102,10 @@ writeRR h' l' reg v = registers . h' .~ (fromIntegral $ shiftR v 8) $
 
 -- | Read from (RR) : The value at location r:r
 readRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8
-readRRm h' l' vm = rb idx (vm ^. mmu)
-  where idx = readRR h' l' (vm ^. registers)
+readRRm h' l' vm' = rb idx (vm' ^. mmu)
+  where idx = readRR h' l' (vm' ^. registers)
 
 -- | Write on (RR) : Write at location r:r
 writeRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8 -> Vm
-writeRRm h' l' vm v = mmu %~ (wb idx v) $ vm
-  where idx = readRR h' l' (vm ^. registers)
+writeRRm h' l' vm' v = mmu %~ (wb idx v) $ vm'
+  where idx = readRR h' l' (vm' ^. registers)

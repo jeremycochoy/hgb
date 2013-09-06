@@ -4,11 +4,10 @@ module HGB.Cartridge
   , getCartridgeType
   ) where
 
-import           Data.Word (Word8(..), Word16(..), Word(..))
+import           Data.Word (Word8)
 import           HGB.Types
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as V
-import           Data.Default (def)
 import           Control.Error.Safe
 import           Data.List (unfoldr)
 import           Control.Lens ((.~))
@@ -59,19 +58,19 @@ mmuFromRomFile path = do
     _      -> Left "Unrocognisez length"
 
 describeCartridge :: Mmu -> Either String CartridgeDesc
-describeCartridge mmu = do
-  t <- justErr "Unknown cartridge type" . getCartridgeType $ cart V.! 0x147
-  Right $ CartridgeDesc title man t
+describeCartridge mmu' = do
+  t' <- justErr "Unknown cartridge type" . getCartridgeType $ cart V.! 0x147
+  Right $ CartridgeDesc title' man t'
   where
-    cart = (_rom mmu)
+    cart = (_rom mmu')
     titleAt i = cart V.! (0x0134 + i)
     manAt   i = cart V.! (0x013F + i)
-    getAt at max i = case i < max && at i /= 0 of
+    getAt at max' i = case i < max' && at i /= 0 of
       False -> Nothing
       True  -> Just $ (toEnum . fromEnum $ at i, i + 1)
     getTitle = getAt titleAt 11
     getMan   = getAt manAt   4
-    title = unfoldr getTitle 0
+    title' = unfoldr getTitle 0
     man   = unfoldr getMan   0
 
 loadRom :: FilePath -> IO (Either String Vm)
