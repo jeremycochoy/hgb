@@ -87,10 +87,6 @@ lRR :: HasRegisters r => ALens' Registers Word8 -> ALens' Registers Word8 -> Len
 lRR h' l' f' reg = writeRR (cloneLens h') (cloneLens l') reg <$>
                   f' (readRR (cloneLens h') (cloneLens l') reg)
 
--- | SP saw as a lens
-lSP :: HasRegisters r => Lens' r Word16
-lSP f' reg = (set (registers . sp) ?? reg) <$> f' (reg ^. registers . sp)
-
 -- | Compute r:r as a 16 bits addr
 readRR :: HasRegisters r => Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> r ->  Word16
 readRR h' l' reg = wCombine (reg ^. registers . h') (reg ^. registers . l')
@@ -109,3 +105,11 @@ readRRm h' l' vm' = rb idx (vm' ^. mmu)
 writeRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8 -> Vm
 writeRRm h' l' vm' v = mmu %~ (wb idx v) $ vm'
   where idx = readRR h' l' (vm' ^. registers)
+
+-- | Read from (RR) : The value at location r:r
+lSPm16 :: Lens' Vm Word16
+lSPm16 f' vm' = writeSPm <$> f' readSPm
+  where
+    readSPm = rw (vm' ^. sp) (vm' ^. mmu)
+    writeSPm v = mmu %~ (ww (vm' ^. sp) v) $ vm'
+

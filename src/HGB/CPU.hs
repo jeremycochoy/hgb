@@ -64,7 +64,7 @@ dispatch 0x2A = trace "LDIaHLm"  $ iLDI a lHLm
 dispatch 0x2E = trace "LDld8"    $ iLDd8 l
 
 dispatch 0x30 = trace "JRNCr8"   $ iJRf lNCf
-dispatch 0x31 = trace "LDSPd16"  $ iLDd16 lSP
+dispatch 0x31 = trace "LDSPd16"  $ iLDd16 sp
 dispatch 0x32 = trace "LDDHLma"  $ iLDD lHLm a
 dispatch 0x36 = trace "LDHLmd8"  $ iLDHLd8 lHLm
 dispatch 0x38 = trace "JRCr8"    $ iJRf lCf
@@ -317,16 +317,13 @@ iXOR input = iXORHL (registers . input) >> mkClock 1 4
 
 iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
 iPUSH input = do
-  word <- use $ registers . input
-  addr <- use $ sp
-  mmu %= ww addr word
+  lSPm16 <~ use (registers . input)
   sp += 2
   mkClock 1 16
 
 iPOP :: ASetter' Registers Word16 -> VmS Clock
 iPOP output = do
-  addr <- use $ sp
-  registers . output <~ rw addr `liftM` use mmu
+  registers . output <~ use lSPm16
   sp -= 2
   mkClock 1 16
 
