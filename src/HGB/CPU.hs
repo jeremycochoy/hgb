@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE Rank2Types      #-}
 
 module HGB.CPU where
 
@@ -8,10 +7,10 @@ import           Control.Lens
 import           Control.Monad.State
 import           Control.Applicative
 import           Data.Default
-import           Data.Bits
-import           Data.Bits.Lens
 import           HGB.Types
 import           HGB.MMU
+import           HGB.Lens
+import           Data.Bits
 --import           Debug.Trace
 import           Text.Printf (printf)
 
@@ -45,13 +44,13 @@ exec = do
 -- | Select the right instruction from the opcode.
 dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "NOP"      $ iNOP
-dispatch 0x01 = trace "LDSPd16"  $ iLDd16 (lRR b c)
+dispatch 0x01 = trace "LDSPd16"  $ iLDd16 lBC
 dispatch 0x02 = trace "LDBCma"   $ iLDHL lBCm a
 dispatch 0x06 = trace "LDbd8"    $ iLDd8 b
 dispatch 0x0A = trace "LDaBCm"   $ iLDHL a lBCm
 dispatch 0x0E = trace "LDcd8"    $ iLDd8 c
 
-dispatch 0x11 = trace "LDSPd16"  $ iLDd16 (lRR d e)
+dispatch 0x11 = trace "LDSPd16"  $ iLDd16 lDE
 dispatch 0x12 = trace "LDDEma"   $ iLDHL lDEm a
 dispatch 0x16 = trace "LDdd8"    $ iLDd8 d
 dispatch 0x18 = trace "JRr8"     $ iJR
@@ -59,7 +58,7 @@ dispatch 0x1A = trace "LDaDEm"   $ iLDHL a lDEm
 dispatch 0x1E = trace "LDed8"    $ iLDd8 e
 
 dispatch 0x20 = trace "JRNZr8"   $ iJRf lNZf
-dispatch 0x21 = trace "LDSPd16"  $ iLDd16 (lRR h l)
+dispatch 0x21 = trace "LDSPd16"  $ iLDd16 lHL
 dispatch 0x22 = trace "LDIHLma"  $ iLDI lHLm a
 dispatch 0x26 = trace "LDhd8"    $ iLDd8 h
 dispatch 0x28 = trace "JRZr8"    $ iJRf lZf
@@ -67,7 +66,7 @@ dispatch 0x2A = trace "LDIaHLm"  $ iLDI a lHLm
 dispatch 0x2E = trace "LDld8"    $ iLDd8 l
 
 dispatch 0x30 = trace "JRNCr8"   $ iJRf lNCf
-dispatch 0x31 = trace "LDSPd16"  $ iLDd16 (lSP)
+dispatch 0x31 = trace "LDSPd16"  $ iLDd16 lSP
 dispatch 0x32 = trace "LDDHLma"  $ iLDD lHLm a
 dispatch 0x36 = trace "LDHLmd8"  $ iLDHLd8 lHLm
 dispatch 0x38 = trace "JRCr8"    $ iJRf lCf
@@ -154,7 +153,18 @@ dispatch 0xAF = trace "XORa"      $ iXOR a
 
 dispatch 0xB8 = trace "CPb"       $ iCPr_b >> mkClock 1 4
 
+dispatch 0xC1 = trace "POPBC"     $ iPOP lBC
+dispatch 0xC5 = trace "PUSHBC"    $ iPUSH lBC
 dispatch 0xCB = trace "PrefCB"    $ iPrefCB
+
+dispatch 0xD1 = trace "POPDE"     $ iPOP lDE
+dispatch 0xD5 = trace "PUSHDE"    $ iPUSH lDE
+
+dispatch 0xE1 = trace "POPHL"     $ iPOP lHL
+dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
+
+dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
+dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
 
 dispatch op   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op)
 
@@ -306,6 +316,22 @@ iLDHLd8 output = output <~ readProgramB >> (mkClock 2 12)
 iXOR :: Getting Word8 Registers Word8 -> VmS Clock
 iXOR input = iXORHL (registers . input) >> mkClock 1 4
 
+iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
+iPUSH input = do
+  word <- use $ registers . input
+  addr <- use $ sp
+  mmu %= ww addr word
+  sp += 2
+  mkClock 1 16
+
+iPOP :: ASetter' Registers Word16 -> VmS Clock
+iPOP output = do
+  addr <- use $ sp
+  registers . output <~ rw addr `liftM` use mmu
+  sp -= 2
+  mkClock 1 16
+
+
 -- | XOR the register a with (register R | (HL)) into a
 --  Syntax : `XOR Src`
 iXORHL :: Getting Word8 Vm Word8 -> VmS Clock
@@ -354,96 +380,11 @@ iBITHL n input = do
   lCf .= False >> lHf .= True
   mkClock 2 16
 
--- | Read from (RR) : The value at location r:r
-readRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8
-readRRm h' l' vm = rb idx (vm ^. mmu)
-  where idx = readRR h' l' (vm ^. registers)
+iLDCma :: VmS Clock
+iLDCma = undefined
 
--- | Write on (RR) : Write at location r:r
-writeRRm :: Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> Vm -> Word8 -> Vm
-writeRRm h' l' vm v = mmu %~ (wb idx v) $ vm
-  where idx = readRR h' l' (vm ^. registers)
-
--- | (HL) saw as a lens
-lHLm :: Lens' Vm Word8
-lHLm = lRRm h l
-
--- | Z flag saw as a lens
-lZf :: HasRegisters t => Lens' t Bool
-lZf = lFlag fZ
-
--- | Z flag saw as a lens
-lHf :: HasRegisters t => Lens' t Bool
-lHf = lFlag fH
-
--- | N flag saw as a lens
-lNf :: HasRegisters t => Lens' t Bool
-lNf = lFlag fN
-
--- | N flag saw as a lens
-lCf :: HasRegisters t => Lens' t Bool
-lCf = lFlag fC
-
--- | not Z flag saw as a lens
-lNZf :: HasRegisters t => Lens' t Bool
-lNZf = lNFlag lZf
-
--- | not N flag saw as a lens
-lNCf :: HasRegisters t => Lens' t Bool
-lNCf = lNFlag lCf
-
--- | Flag saw as a lens
-lFlag :: HasRegisters t => Word8 -> Lens' t Bool
-lFlag flag f' reg = writeFlag <$> f' readFlag
-  where
-    readFlag = 0 /= (reg ^. f) .&. flag
-    writeFlag val = case val of
-      False -> f .&.~ (complement flag) $ reg
-      True -> f .|.~ flag $ reg
-
--- | Flag saw as a lens (with value negated by "not")
-lNFlag :: HasRegisters t => Lens' Registers Bool -> Lens' t Bool
-lNFlag fl f reg = (set (registers . fl) ?? reg) . not <$>
-                  f (not $ reg ^. registers . fl)
-
--- | (BC) saw as a lens
-lBCm :: Lens' Vm Word8
-lBCm = lRRm b c
-
--- | (DE) saw as a lens
-lDEm :: Lens' Vm Word8
-lDEm = lRRm d e
-
--- | (RR) saw as a lens
-lRRm :: ALens' Registers Word8 -> ALens' Registers Word8 -> Lens' Vm Word8
-lRRm h' l' f vm = (writeRRm (cloneLens h') (cloneLens l') vm) <$>
-                  f (readRRm (cloneLens h') (cloneLens l') vm)
-
--- | RR (where R means a register) saw as a lens
-lRR :: HasRegisters r => ALens' Registers Word8 -> ALens' Registers Word8 -> Lens' r Word16
-lRR h' l' f reg = writeRR (cloneLens h') (cloneLens l') reg <$>
-                  f (readRR (cloneLens h') (cloneLens l') reg)
-
--- | SP saw as a lens
-lSP :: HasRegisters r => Lens' r Word16
-lSP f reg = (set (registers . sp) ?? reg) <$> f (reg ^. registers . sp)
-
--- | Compute r:r as a 16 bits addr
-readRR :: HasRegisters r => Getting Word8 Registers Word8 -> Getting Word8 Registers Word8 -> r ->  Word16
-readRR h' l' reg = wCombine (reg ^. registers . h') (reg ^. registers . l')
-
--- | Compute r:r as a 16 bits addr
-writeRR :: (HasRegisters r) => ASetter' Registers Word8 -> ASetter' Registers Word8 -> r -> Word16 -> r
-writeRR h' l' reg v = registers . h' .~ (fromIntegral $ shiftR v 8) $
-                      registers . l' .~ (fromIntegral v) $ reg
-
--- | Compute h:l as a 16 bits addr
-readDE :: Registers ->  Word16
-readDE reg = wCombine (reg ^. d) (reg ^. l)
-
--- | Compute h:l as a 16 bits addr
-writeDE :: Registers -> Word16 -> Registers
-writeDE reg v = reg {_l = fromIntegral $ shiftR v 8, _h = fromIntegral v}
+iLDaCm :: VmS Clock
+iLDaCm = undefined
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()

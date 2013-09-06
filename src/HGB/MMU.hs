@@ -42,5 +42,5 @@ wb :: Word16 -> Word8 -> Mmu -> Mmu
 wb _ _ x = x
 
 -- | Write a word from MMU (TODO)
-ww :: Word16 -> Word8 -> Mmu -> Mmu
+ww :: Word16 -> Word16 -> Mmu -> Mmu
 ww _ _ x = x
