@@ -72,10 +72,9 @@ lDE = lRR d e
 lHL :: HasRegisters t => Lens' t Word16
 lHL = lRR h l
 
--- | HL saw as a lens
+-- | AF saw as a lens
 lAF :: HasRegisters t => Lens' t Word16
-lAF = lRR a f
--- TODO : Rewrite the f lens so that the 4 lower register are always the same.
+lAF f' reg = (writeRR a f reg . (.&. 0xFFF0)) <$> f' (0xFFF0 .&. readRR a f reg)
 
 -- | (RR) saw as a lens
 lRRm :: ALens' Registers Word8 -> ALens' Registers Word8 -> Lens' Vm Word8
