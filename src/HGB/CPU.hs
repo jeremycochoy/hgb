@@ -44,31 +44,55 @@ dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "NOP"      $ iNOP
 dispatch 0x01 = trace "LDSPd16"  $ iLDd16 lBC
 dispatch 0x02 = trace "LDBCma"   $ iLDHL lBCm a
+dispatch 0x03 = trace "INCBC"    $ iINCr16 lBC
+dispatch 0x04 = trace "INCb"     $ iINC b
+dispatch 0x05 = trace "DECb"     $ iDEC b
 dispatch 0x06 = trace "LDbd8"    $ iLDd8 b
 dispatch 0x0A = trace "LDaBCm"   $ iLDHL a lBCm
+dispatch 0x0B = trace "DECBC"    $ iDECr16 lBC
+dispatch 0x0C = trace "INCc"     $ iINC c
+dispatch 0x0D = trace "DECc"     $ iDEC c
 dispatch 0x0E = trace "LDcd8"    $ iLDd8 c
 
 dispatch 0x11 = trace "LDSPd16"  $ iLDd16 lDE
 dispatch 0x12 = trace "LDDEma"   $ iLDHL lDEm a
+dispatch 0x13 = trace "INCDE"    $ iINCr16 lDE
+dispatch 0x14 = trace "INCd"     $ iINC d
+dispatch 0x15 = trace "DECd"     $ iDEC d
 dispatch 0x16 = trace "LDdd8"    $ iLDd8 d
 dispatch 0x18 = trace "JRr8"     $ iJR
 dispatch 0x1A = trace "LDaDEm"   $ iLDHL a lDEm
+dispatch 0x1B = trace "DECDE"    $ iDECr16 lDE
+dispatch 0x1C = trace "INCe"     $ iINC e
+dispatch 0x1D = trace "DECe"     $ iDEC e
 dispatch 0x1E = trace "LDed8"    $ iLDd8 e
 
 dispatch 0x20 = trace "JRNZr8"   $ iJRf lNZf
 dispatch 0x21 = trace "LDSPd16"  $ iLDd16 lHL
 dispatch 0x22 = trace "LDIHLma"  $ iLDI lHLm a
+dispatch 0x23 = trace "INCHL"    $ iINCr16 lHL
+dispatch 0x24 = trace "INCh"     $ iINC h
+dispatch 0x25 = trace "DECh"     $ iDEC h
 dispatch 0x26 = trace "LDhd8"    $ iLDd8 h
 dispatch 0x28 = trace "JRZr8"    $ iJRf lZf
 dispatch 0x2A = trace "LDIaHLm"  $ iLDI a lHLm
+dispatch 0x2B = trace "DECHL"    $ iDECr16 lHL
+dispatch 0x2C = trace "INCl"     $ iINC l
+dispatch 0x2D = trace "DECl"     $ iDEC l
 dispatch 0x2E = trace "LDld8"    $ iLDd8 l
 
 dispatch 0x30 = trace "JRNCr8"   $ iJRf lNCf
 dispatch 0x31 = trace "LDSPd16"  $ iLDd16 sp
 dispatch 0x32 = trace "LDDHLma"  $ iLDD lHLm a
+dispatch 0x33 = trace "INCSP"    $ iINCr16 sp
+dispatch 0x34 = trace "INHLm"    $ iINCHL lHLm
+dispatch 0x35 = trace "DECHLm"   $ iDECHL lHLm
 dispatch 0x36 = trace "LDHLmd8"  $ iLDHLd8 lHLm
 dispatch 0x38 = trace "JRCr8"    $ iJRf lCf
 dispatch 0x3A = trace "LDIaHLm"  $ iLDD a lHLm
+dispatch 0x3B = trace "DECSP"    $ iDECr16 sp
+dispatch 0x3C = trace "INCa"     $ iINC a
+dispatch 0x3D = trace "DECa"     $ iDEC a
 dispatch 0x3E = trace "LDad8"    $ iLDd8 a
 
 dispatch 0x40 = trace "LDbb"     $ iLD b b
@@ -149,6 +173,14 @@ dispatch 0xAD = trace "XORl"      $ iXOR l
 dispatch 0xAE = trace "XORHLm"    $ iXORHL lHLm
 dispatch 0xAF = trace "XORa"      $ iXOR a
 
+dispatch 0xB0 = trace "ORb"       $ iOR b
+dispatch 0xB1 = trace "ORc"       $ iOR c
+dispatch 0xB2 = trace "ORd"       $ iOR d
+dispatch 0xB3 = trace "ORe"       $ iOR e
+dispatch 0xB4 = trace "ORh"       $ iOR h
+dispatch 0xB5 = trace "ORl"       $ iOR l
+dispatch 0xB6 = trace "ORHLm"     $ iORHL lHLm
+dispatch 0xB7 = trace "ORa"       $ iOR a
 dispatch 0xB8 = trace "CPb"       $ iCPr_b >> mkClock 1 4
 
 dispatch 0xC1 = trace "POPBC"     $ iPOP lBC
@@ -158,14 +190,19 @@ dispatch 0xCB = trace "PrefCB"    $ iPrefCB
 dispatch 0xD1 = trace "POPDE"     $ iPOP lDE
 dispatch 0xD5 = trace "PUSHDE"    $ iPUSH lDE
 
+dispatch 0xE0 = trace "LDa8a"     $ iLDa8a
 dispatch 0xE1 = trace "POPHL"     $ iPOP lHL
 dispatch 0xE2 = trace "LDCma"     $ iLDCma
 dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
 dispatch 0xEE = trace "XORd8"     $ iXORd8
+dispatch 0xEA = trace "LDa16a"    $ iLDa16a
 
+dispatch 0xF0 = trace "LDaa8"     $ iLDa8a
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
 dispatch 0xF2 = trace "LDaCm"     $ iLDaCm
 dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
+dispatch 0xF6 = trace "ORd8"      $ iORd8
+dispatch 0xFA = trace "LDaa16"    $ iLDaa16
 
 dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op')
 
@@ -313,6 +350,34 @@ iLDd8 output = registers . output <~ readProgramB >> (mkClock 2 8)
 iLDHLd8 :: ASetter' Vm Word8 -> VmS Clock
 iLDHLd8 output = output <~ readProgramB >> (mkClock 2 12)
 
+-- | LD (a16) <- a where a16 means the next Word16 as an address.
+iLDa16a :: VmS Clock
+iLDa16a = do
+  addr <- readProgramW
+  la16 addr <~ use a
+  mkClock 3 12
+
+-- | LD a <- (a16) where a16 means the next Word16 as an address.
+iLDaa16 :: VmS Clock
+iLDaa16 = do
+  addr <- readProgramW
+  a <~ use (la16 addr)
+  mkClock 3 12
+
+-- | LD (a8) <- a where a8 means the next Word8 + 0xFF00 as an address.
+iLDa8a :: VmS Clock
+iLDa8a = do
+  addr <- readProgramB
+  la8 addr <~ use a
+  mkClock 3 12
+
+-- | LD a <- (a8) where a8 means the next Word8 + 0xFF00 as an address.
+iLDaa8 :: VmS Clock
+iLDaa8 = do
+  addr <- readProgramB
+  a <~ use (la8 addr)
+  mkClock 3 12
+
 -- | XOR the register 'a' with a register 'R' into 'a'
 --   Syntax : `XOR Src`
 iXOR :: Getting Word8 Registers Word8 -> VmS Clock
@@ -323,23 +388,88 @@ iXOR input = (use $ registers . input) >>= iXORimp >> mkClock 1 4
 iXORHL :: Getting Word8 Vm Word8 -> VmS Clock
 iXORHL input = (use input) >>= iXORimp >> mkClock 1 8
 
+-- | XOR the register 'a' with the immediate Word8
+--   Syntax : `XOR Src`
 iXORd8 :: VmS Clock
 iXORd8 = readProgramB >>= iXORimp >> mkClock 2 8
 
--- | XOR the register 'a' with the immediate Word8
---   Syntax : `XOR Src`
 iXORimp :: Word8 -> VmS ()
 iXORimp value = do
   fReset
   res <- a <%= xor value
   lZf .= (res == 0)
 
+-- | Bitwise OR the register 'a' with a register 'R' into 'a'
+--   Syntax : `OR Src`
+iOR :: Getting Word8 Registers Word8 -> VmS Clock
+iOR input = (use $ registers . input) >>= iORimp >> mkClock 1 4
+
+-- | Bitwise OR the register a with (register R | (HL)) into a
+--  Syntax : `OR Src`
+iORHL :: Getting Word8 Vm Word8 -> VmS Clock
+iORHL input = (use input) >>= iORimp >> mkClock 1 8
+
+-- | Bitwise OR the register 'a' with the immediate Word8
+--   Syntax : `OR Src`
+iORd8 :: VmS Clock
+iORd8 = readProgramB >>= iORimp >> mkClock 2 8
+
+iORimp :: Word8 -> VmS ()
+iORimp value = do
+  fReset
+  res <- a <%= (.|. value)
+  lZf .= (res == 0)
+
+-- | Increment the register given, and set Z, H as expected.
+--   Always set N to 0.
+--
+-- Syntax : `INC reg`
+iINC :: Lens' Registers Word8 -> VmS Clock
+iINC field = iINCHL (registers . field) >> mkClock 1 4
+
+-- | Increment the 16 bits registers given. Do not change any flag.
+iINCr16 :: Lens' Registers Word16 -> VmS Clock
+iINCr16 field = (registers . field) <+= 1 >> mkClock 1 8
+
+-- | Increment (HL). Flag behave as INC does.
+iINCHL :: Lens' Vm Word8 -> VmS Clock
+iINCHL field = do
+  initial <- use field
+  res     <- field <+= 1
+  lZf .= (res == 0)
+  lHf .= (initial .&. 0xF == 0xF)
+  lNf .= False
+  mkClock 1 12
+
+-- | Decrement the register given, and set Z, H as expected.
+--   Always set N to 0.
+--
+-- Syntax : `DEC reg`
+iDEC :: Lens' Registers Word8 -> VmS Clock
+iDEC field = iDECHL (registers . field) >> mkClock 1 4
+
+-- | Decrement the 16 bits registers given. Do not change any flag.
+iDECr16 :: Lens' Registers Word16 -> VmS Clock
+iDECr16 field = (registers . field) <-= 1 >> mkClock 1 8
+
+-- | Decrement (HL). Flag behave as INC does.
+iDECHL :: Lens' Vm Word8 -> VmS Clock
+iDECHL field = do
+  initial <- use field
+  res     <- field <-= 1
+  lZf .= (res == 0)
+  lHf .= (initial .&. 0xF == 0)
+  lNf .= True
+  mkClock 1 12
+
+-- | Push the value on the stack
 iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
 iPUSH input = do
   lSPm16 <~ use (registers . input)
   sp += 2
   mkClock 1 16
 
+-- | Pop the value from the stack
 iPOP :: ASetter' Registers Word16 -> VmS Clock
 iPOP output = do
   registers . output <~ use lSPm16

@@ -113,3 +113,10 @@ lSPm16 f' vm' = writeSPm <$> f' readSPm
     readSPm = rw (vm' ^. sp) (vm' ^. mmu)
     writeSPm v = mmu %~ (ww (vm' ^. sp) v) $ vm'
 
+-- | Read from (a16) where a6 is the address given.
+la16 :: Word16 -> Lens' Vm Word8
+la16 addr f' vm' = (\v -> mmu %~ (wb addr v) $ vm') <$> f' (rb addr (vm' ^. mmu))
+
+-- | Read from (0xFF00 + addrL) where addrL is the address given.
+la8 :: Word8 -> Lens' Vm Word8
+la8 addrL f' vm' = la16 (0xFF00 + fromIntegral addrL) f' vm'
