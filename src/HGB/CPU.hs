@@ -159,9 +159,12 @@ dispatch 0xD1 = trace "POPDE"     $ iPOP lDE
 dispatch 0xD5 = trace "PUSHDE"    $ iPUSH lDE
 
 dispatch 0xE1 = trace "POPHL"     $ iPOP lHL
+dispatch 0xE2 = trace "LDCma"     $ iLDCma
 dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
+dispatch 0xEE = trace "XORd8"     $ iXORd8
 
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
+dispatch 0xF2 = trace "LDaCm"     $ iLDaCm
 dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
 
 dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op')
@@ -313,7 +316,23 @@ iLDHLd8 output = output <~ readProgramB >> (mkClock 2 12)
 -- | XOR the register 'a' with a register 'R' into 'a'
 --   Syntax : `XOR Src`
 iXOR :: Getting Word8 Registers Word8 -> VmS Clock
-iXOR input = iXORHL (registers . input) >> mkClock 1 4
+iXOR input = (use $ registers . input) >>= iXORimp >> mkClock 1 4
+
+-- | XOR the register a with (register R | (HL)) into a
+--  Syntax : `XOR Src`
+iXORHL :: Getting Word8 Vm Word8 -> VmS Clock
+iXORHL input = (use input) >>= iXORimp >> mkClock 1 8
+
+iXORd8 :: VmS Clock
+iXORd8 = readProgramB >>= iXORimp >> mkClock 2 8
+
+-- | XOR the register 'a' with the immediate Word8
+--   Syntax : `XOR Src`
+iXORimp :: Word8 -> VmS ()
+iXORimp value = do
+  fReset
+  res <- a <%= xor value
+  lZf .= (res == 0)
 
 iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
 iPUSH input = do
@@ -326,16 +345,6 @@ iPOP output = do
   registers . output <~ use lSPm16
   sp -= 2
   mkClock 1 16
-
-
--- | XOR the register a with (register R | (HL)) into a
---  Syntax : `XOR Src`
-iXORHL :: Getting Word8 Vm Word8 -> VmS Clock
-iXORHL input = do
-  fReset
-  value <- use input
-  a %= xor value
-  mkClock 1 8
 
 -- | CB Prefix. Load the next bit and dispatch it using dispatchCB.
 iPrefCB :: VmS Clock
@@ -377,10 +386,17 @@ iBITHL n input = do
   mkClock 2 16
 
 iLDCma :: VmS Clock
-iLDCma = undefined
+iLDCma = do
+  addr <- ((+ 0xFF00) . fromIntegral) `liftM` use c
+  value <- use a
+  mmu %= wb addr value
+  mkClock 1 8
 
 iLDaCm :: VmS Clock
-iLDaCm = undefined
+iLDaCm = do
+  addr <- ((+ 0xFF00) . fromIntegral) `liftM` use c
+  a <~ rb addr `liftM` use mmu
+  mkClock 1 8
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()
