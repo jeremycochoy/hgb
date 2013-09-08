@@ -33,6 +33,9 @@ data Registers = Registers
 wCombine :: Word8 -> Word8 -> Word16
 wCombine h l = (shiftL (fromIntegral h) 8) .|. (fromIntegral l)
 
+wUncombine :: Word16 -> (Word8, Word8)
+wUncombine hl = (fromIntegral $ shiftR hl 8, fromIntegral hl)
+
 instance Default Registers where
   def = Registers
     { _a = 0
@@ -61,14 +64,16 @@ instance Default Clock where
     }
 
 -- | The Z80 CPU
-data Cpu = Cpu { _cpuRegisters :: !Registers, _cpuClock :: !Clock }
-           deriving (Show, Eq)
-
+data Cpu = Cpu { _cpuRegisters :: !Registers
+               , _cpuClock :: !Clock
+               , _interrupt :: !Bool
+               } deriving (Show, Eq)
 
 instance Default Cpu where
   def = Cpu
     { _cpuRegisters = def
     , _cpuClock = def
+    , _interrupt = False
     }
 
 -- | The MMU (memory)
@@ -85,7 +90,11 @@ data Mmu = Mmu
   -- ^ C000-CFFF   4KB Work RAM Bank 0 (WRAM)
   , _swram :: !(V.Vector Word8)
   -- ^ D000-DFFF   4KB Work RAM Bank 1 (WRAM)
-
+  , _ier   :: Word8
+  -- ^ FFFF   Interrupt Enable Register
+  , _biosEnabled :: Bool
+  -- ^ When true, reading below 0x100 access the bios.
+  --   Otherwise, it reads from the _rom field.
   } deriving (Show, Eq)
 
 instance Default Mmu where
@@ -113,6 +122,8 @@ instance Default Mmu where
     , _eram  = emptyMem [0xA000..0xBFFF]
     , _wram  = emptyMem [0xC000..0xCFFF]
     , _swram = emptyMem [0xD000..0xDFFF]
+    , _ier = 0x00
+    , _biosEnabled = True
     }
 
 -- | Replace the each element of the list by a null byte

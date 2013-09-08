@@ -32,12 +32,18 @@ readProgramW = do
 -- | Execute exactly one instruction
 exec :: VmS ()
 exec = do
+--  vm %= (\vm' -> if (vm' ^. pc == 0) then (pc .~ 0x100 $ vm') else vm')
+  disableBios =<< use vm
   inst <- dispatch =<< readProgramB
 
   t += inst ^. t
   m += inst ^. m
 
   return ()
+  where
+    disableBios vm'
+      | (vm' ^. pc) >= 0x100 = biosEnabled .= False
+      | otherwise = return ()
 
 -- | Select the right instruction from the opcode.
 dispatch :: Word8 -> Instruction
@@ -183,26 +189,53 @@ dispatch 0xB6 = trace "ORHLm"     $ iORHL lHLm
 dispatch 0xB7 = trace "ORa"       $ iOR a
 dispatch 0xB8 = trace "CPb"       $ iCPr_b >> mkClock 1 4
 
+dispatch 0xC0 = trace "RETNZ"     $ iRETf lNZf
 dispatch 0xC1 = trace "POPBC"     $ iPOP lBC
+dispatch 0xC2 = trace "JPNZ"      $ iJPf lNZf
+dispatch 0xC3 = trace "JP"        $ iJP
+dispatch 0xC4 = trace "CALLNZ"    $ iCALLf lNZf
 dispatch 0xC5 = trace "PUSHBC"    $ iPUSH lBC
+dispatch 0xC8 = trace "RETZ"      $ iRETf lZf
+dispatch 0xC9 = trace "RET"       $ iRET
+dispatch 0xCA = trace "JPZ"       $ iJPf lZf
 dispatch 0xCB = trace "PrefCB"    $ iPrefCB
+dispatch 0xCC = trace "CALLZ"     $ iCALLf lZf
+dispatch 0xCD = trace "CALL"      $ iCALL
 
+dispatch 0xD0 = trace "RETNC"     $ iRETf lNCf
 dispatch 0xD1 = trace "POPDE"     $ iPOP lDE
+dispatch 0xD2 = trace "JPNC"      $ iJPf lNCf
+dispatch 0xD3 = trace "none"      $ iNone 0xD3
+dispatch 0xD4 = trace "CALLNC"    $ iCALLf lNCf
 dispatch 0xD5 = trace "PUSHDE"    $ iPUSH lDE
+dispatch 0xD8 = trace "RETC"      $ iRETf lCf
+dispatch 0xD9 = trace "RETI"      $ iRETI
+dispatch 0xDA = trace "JPC"       $ iJPf lCf
+dispatch 0xDB = trace "none"      $ iNone 0xDB
+dispatch 0xDD = trace "none"      $ iNone 0xDD
+dispatch 0xDC = trace "CALLC"     $ iCALLf lCf
 
 dispatch 0xE0 = trace "LDa8a"     $ iLDa8a
 dispatch 0xE1 = trace "POPHL"     $ iPOP lHL
 dispatch 0xE2 = trace "LDCma"     $ iLDCma
+dispatch 0xE3 = trace "none"      $ iNone 0xE3
 dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
+dispatch 0xE9 = trace "JPHLm"     $ iJPHLm
 dispatch 0xEE = trace "XORd8"     $ iXORd8
 dispatch 0xEA = trace "LDa16a"    $ iLDa16a
+dispatch 0xEB = trace "none"      $ iNone 0xEB
+dispatch 0xEC = trace "none"      $ iNone 0xEC
+dispatch 0xED = trace "none"      $ iNone 0xED
 
 dispatch 0xF0 = trace "LDaa8"     $ iLDa8a
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
 dispatch 0xF2 = trace "LDaCm"     $ iLDaCm
+dispatch 0xF4 = trace "none"      $ iNone 0xF4
 dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
 dispatch 0xF6 = trace "ORd8"      $ iORd8
 dispatch 0xFA = trace "LDaa16"    $ iLDaa16
+dispatch 0xFC = trace "none"      $ iNone 0xFC
+dispatch 0xFD = trace "none"      $ iNone 0xFD
 
 dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op')
 
@@ -466,14 +499,14 @@ iDECHL field = do
 iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
 iPUSH input = do
   lSPm16 <~ use (registers . input)
-  sp += 2
+  sp -= 2
   mkClock 1 16
 
 -- | Pop the value from the stack
 iPOP :: ASetter' Registers Word16 -> VmS Clock
 iPOP output = do
   registers . output <~ use lSPm16
-  sp -= 2
+  sp += 2
   mkClock 1 16
 
 -- | CB Prefix. Load the next bit and dispatch it using dispatchCB.
@@ -482,7 +515,7 @@ iPrefCB = do
   jmpAddr <- readProgramB
   addClock 1 4 <$> dispatchCB jmpAddr
 
--- | Read the byte pointed by CP and at it to SP
+-- | Read the byte pointed by CP and add it to CP
 iJR :: VmS Clock
 iJR = do
   byte <- readProgramB
@@ -492,12 +525,67 @@ iJR = do
     True  -> pc -= (fromIntegral $ complement byte + 1)
   mkClock 2 12
 
+-- | Conditional JR
 iJRf :: Getting Bool Registers Bool -> VmS Clock
 iJRf flag = do
   shouldJump <- use $ registers . flag
   case shouldJump of
     True  -> iJR
     False -> readProgramB >> mkClock 2 8
+
+-- | Read the two bytes pointed by CP and place them into CP
+iJP :: VmS Clock
+iJP = do
+  addr <- readProgramW
+  pc .= addr
+  mkClock 3 16
+
+-- | JP (HL)
+iJPHLm :: VmS Clock
+iJPHLm = do
+  addr <- use lHL
+  pc .= addr
+  mkClock 1 4
+
+-- | Conditional JP
+iJPf :: Getting Bool Registers Bool -> VmS Clock
+iJPf flag = do
+  shouldJump <- use $ registers . flag
+  case shouldJump of
+    True  -> iJP
+    False -> readProgramW >> mkClock 3 12
+
+-- | Push CP and load the immediate Word16 address into CP
+iCALL :: VmS Clock
+iCALL = do
+  addr <- readProgramW
+  iPUSH pc
+  pc .= addr
+  mkClock 3 16
+
+-- | Conditional JP
+iCALLf :: Getting Bool Registers Bool -> VmS Clock
+iCALLf flag = do
+  shouldJump <- use $ registers . flag
+  case shouldJump of
+    True  -> iCALL
+    False -> readProgramW >> mkClock 3 12
+
+-- | Push CP and load the immediate Word16 address into CP
+iRET :: VmS Clock
+iRET = iPOP pc >> mkClock 1 16
+
+-- | Conditional JP
+iRETf :: Getting Bool Registers Bool -> VmS Clock
+iRETf flag = do
+  shouldJump <- use $ registers . flag
+  case shouldJump of
+    True  -> iPOP pc >> mkClock 1 20
+    False -> mkClock 1 8
+
+-- | Same as ret, but enable interupt after returning
+iRETI :: VmS Clock
+iRETI = iRET >> {- TODO : iEI >> -} mkClock 1 16
 
 -- | The BIT instruction check if the nth bit is set, by setting/unsetting
 --   the zero flag.
@@ -538,3 +626,6 @@ iCPr_b = do
   lCf .= (a' < b')
   lZf .= (0 == diff)
   lHf .= True
+
+iNone :: Word8 -> VmS Clock
+iNone op' = error $ "This instruction desn't exists: " ++ (printf "0x%02x" op')
