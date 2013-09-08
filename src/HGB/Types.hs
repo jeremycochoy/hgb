@@ -63,18 +63,26 @@ instance Default Clock where
     , _t = 0
     }
 
+data InterruptState = IEnabled | IDisabled | INextInstD | INextInstE
+                    deriving (Eq, Show)
+
 -- | The Z80 CPU
 data Cpu = Cpu { _cpuRegisters :: !Registers
                , _cpuClock :: !Clock
-               , _interrupt :: !Bool
+               , _interrupt :: !InterruptState
                } deriving (Show, Eq)
 
 instance Default Cpu where
   def = Cpu
     { _cpuRegisters = def
     , _cpuClock = def
-    , _interrupt = False
+    , _interrupt = IDisabled
     }
+
+data Gpu = Gpu { _vram :: !(V.Vector Word8) } deriving (Show, Eq)
+
+instance Default Gpu where
+  def = Gpu { _vram = emptyMem [0x8000..0x9FFF] }
 
 -- | The MMU (memory)
 data Mmu = Mmu
@@ -95,6 +103,7 @@ data Mmu = Mmu
   , _biosEnabled :: Bool
   -- ^ When true, reading below 0x100 access the bios.
   --   Otherwise, it reads from the _rom field.
+  , _mmuGpu :: Gpu
   } deriving (Show, Eq)
 
 instance Default Mmu where
@@ -124,6 +133,7 @@ instance Default Mmu where
     , _swram = emptyMem [0xD000..0xDFFF]
     , _ier = 0x00
     , _biosEnabled = True
+    , _mmuGpu = def
     }
 
 -- | Replace the each element of the list by a null byte
@@ -202,6 +212,7 @@ instance Default CartridgeDesc where
 makeClassy ''Mmu
 makeClassy ''Vm
 makeClassy ''Cpu
+makeClassy ''Gpu
 makeClassy ''Registers
 makeClassy ''Clock
 makeClassy ''CartridgeDesc
@@ -212,5 +223,7 @@ instance HasRegisters Vm where registers = vmCpu . cpuRegisters
 instance HasClock Vm where clock = vmCpu . cpuClock
 instance HasRegisters Cpu where registers = cpuRegisters
 instance HasClock Cpu where clock = cpuClock
+instance HasGpu Mmu where gpu = mmuGpu
+instance HasGpu Vm where gpu = vmMmu . mmuGpu
 
 

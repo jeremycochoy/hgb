@@ -33,17 +33,22 @@ readProgramW = do
 exec :: VmS ()
 exec = do
 --  vm %= (\vm' -> if (vm' ^. pc == 0) then (pc .~ 0x100 $ vm') else vm')
+  interruptState <- use interrupt
+
   disableBios =<< use vm
   inst <- dispatch =<< readProgramB
 
   t += inst ^. t
   m += inst ^. m
 
-  return ()
+  switchInterrupt interruptState
   where
     disableBios vm'
       | (vm' ^. pc) >= 0x100 = biosEnabled .= False
       | otherwise = return ()
+    switchInterrupt INextInstE = interrupt .= IEnabled
+    switchInterrupt INextInstD = interrupt .= IDisabled
+    switchInterrupt _ = return()
 
 -- | Select the right instruction from the opcode.
 dispatch :: Word8 -> Instruction
@@ -230,10 +235,12 @@ dispatch 0xED = trace "none"      $ iNone 0xED
 dispatch 0xF0 = trace "LDaa8"     $ iLDa8a
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
 dispatch 0xF2 = trace "LDaCm"     $ iLDaCm
+dispatch 0xF3 = trace "DI"        $ iDI
 dispatch 0xF4 = trace "none"      $ iNone 0xF4
 dispatch 0xF5 = trace "PUSHAF"    $ iPUSH lAF
 dispatch 0xF6 = trace "ORd8"      $ iORd8
 dispatch 0xFA = trace "LDaa16"    $ iLDaa16
+dispatch 0xFB = trace "EI"        $ iEI
 dispatch 0xFC = trace "none"      $ iNone 0xFC
 dispatch 0xFD = trace "none"      $ iNone 0xFD
 
@@ -583,9 +590,19 @@ iRETf flag = do
     True  -> iPOP pc >> mkClock 1 20
     False -> mkClock 1 8
 
--- | Same as ret, but enable interupt after returning
+-- | Same as ret, but enable interrupt after returning
 iRETI :: VmS Clock
-iRETI = iRET >> {- TODO : iEI >> -} mkClock 1 16
+iRETI = iRET >> interrupt .= IEnabled >> mkClock 1 16
+
+-- | Enable Interrupts
+--
+--   Interuptions will be enabled after the following instruction
+--   was executed.
+iEI :: VmS Clock
+iEI = interrupt .= INextInstE >> mkClock 1 4
+
+iDI :: VmS Clock
+iDI = interrupt .= INextInstD >> mkClock 1 4
 
 -- | The BIT instruction check if the nth bit is set, by setting/unsetting
 --   the zero flag.
