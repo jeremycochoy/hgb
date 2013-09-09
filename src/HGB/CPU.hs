@@ -250,6 +250,14 @@ dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op'
 --   This function call the right bit instruction from the opcode.
 dispatchCB :: Word8 -> Instruction
 
+dispatchCB 0x30 = trace "SWAPb"   $ iSWAP b
+dispatchCB 0x31 = trace "SWAPc"   $ iSWAP c
+dispatchCB 0x32 = trace "SWAPd"   $ iSWAP d
+dispatchCB 0x33 = trace "SWAPe"   $ iSWAP e
+dispatchCB 0x34 = trace "SWAPh"   $ iSWAP h
+dispatchCB 0x35 = trace "SWAPl"   $ iSWAP l
+dispatchCB 0x36 = trace "SWAPHLm" $ iSWAPHL lHLm
+
 dispatchCB 0x40 = trace "BIT0b"   $ iBIT 0 b
 dispatchCB 0x41 = trace "BIT0c"   $ iBIT 0 c
 dispatchCB 0x42 = trace "BIT0d"   $ iBIT 0 d
@@ -317,6 +325,142 @@ dispatchCB 0x7C = trace "BIT7h"   $ iBIT 7 h
 dispatchCB 0x7D = trace "BIT7l"   $ iBIT 7 l
 dispatchCB 0x7E = trace "BIT7HLm" $ iBITHL 7 lHLm
 dispatchCB 0x7F = trace "BIT7a"   $ iBIT 7 a
+
+dispatchCB 0x80 = trace "RES0b"   $ iRES 0 b
+dispatchCB 0x81 = trace "RES0c"   $ iRES 0 c
+dispatchCB 0x82 = trace "RES0d"   $ iRES 0 d
+dispatchCB 0x83 = trace "RES0e"   $ iRES 0 e
+dispatchCB 0x84 = trace "RES0h"   $ iRES 0 h
+dispatchCB 0x85 = trace "RES0l"   $ iRES 0 l
+dispatchCB 0x86 = trace "RES0HLm" $ iRESHL 0 lHLm
+dispatchCB 0x87 = trace "RES0a"   $ iRES 0 a
+dispatchCB 0x88 = trace "RES1b"   $ iRES 1 b
+dispatchCB 0x89 = trace "RES1c"   $ iRES 1 c
+dispatchCB 0x8A = trace "RES1d"   $ iRES 1 d
+dispatchCB 0x8B = trace "RES1e"   $ iRES 1 e
+dispatchCB 0x8C = trace "RES1h"   $ iRES 1 h
+dispatchCB 0x8D = trace "RES1l"   $ iRES 1 l
+dispatchCB 0x8E = trace "RES1HLm" $ iRESHL 1 lHLm
+dispatchCB 0x8F = trace "RES1a"   $ iRES 1 a
+
+dispatchCB 0x90 = trace "RES2b"   $ iRES 2 b
+dispatchCB 0x91 = trace "RES2c"   $ iRES 2 c
+dispatchCB 0x92 = trace "RES2d"   $ iRES 2 d
+dispatchCB 0x93 = trace "RES2e"   $ iRES 2 e
+dispatchCB 0x94 = trace "RES2h"   $ iRES 2 h
+dispatchCB 0x95 = trace "RES2l"   $ iRES 2 l
+dispatchCB 0x96 = trace "RES2HLm" $ iRESHL 2 lHLm
+dispatchCB 0x97 = trace "RES2a"   $ iRES 2 a
+dispatchCB 0x98 = trace "RES3b"   $ iRES 3 b
+dispatchCB 0x99 = trace "RES3c"   $ iRES 3 c
+dispatchCB 0x9A = trace "RES3d"   $ iRES 3 d
+dispatchCB 0x9B = trace "RES3e"   $ iRES 3 e
+dispatchCB 0x9C = trace "RES3h"   $ iRES 3 h
+dispatchCB 0x9D = trace "RES3l"   $ iRES 3 l
+dispatchCB 0x9E = trace "RES3HLm" $ iRESHL 3 lHLm
+dispatchCB 0x9F = trace "RES3a"   $ iRES 3 a
+
+dispatchCB 0xA0 = trace "RES4b"   $ iRES 4 b
+dispatchCB 0xA1 = trace "RES4c"   $ iRES 4 c
+dispatchCB 0xA2 = trace "RES4d"   $ iRES 4 d
+dispatchCB 0xA3 = trace "RES4e"   $ iRES 4 e
+dispatchCB 0xA4 = trace "RES4h"   $ iRES 4 h
+dispatchCB 0xA5 = trace "RES4l"   $ iRES 4 l
+dispatchCB 0xA6 = trace "RES4HLm" $ iRESHL 4 lHLm
+dispatchCB 0xA7 = trace "RES4a"   $ iRES 4 a
+dispatchCB 0xA8 = trace "RES5b"   $ iRES 5 b
+dispatchCB 0xA9 = trace "RES5c"   $ iRES 5 c
+dispatchCB 0xAA = trace "RES5d"   $ iRES 5 d
+dispatchCB 0xAB = trace "RES5e"   $ iRES 5 e
+dispatchCB 0xAC = trace "RES5h"   $ iRES 5 h
+dispatchCB 0xAD = trace "RES5l"   $ iRES 5 l
+dispatchCB 0xAE = trace "RES5HLm" $ iRESHL 5 lHLm
+dispatchCB 0xAF = trace "RES5a"   $ iRES 5 a
+
+dispatchCB 0xB0 = trace "RES6b"   $ iRES 6 b
+dispatchCB 0xB1 = trace "RES6c"   $ iRES 6 c
+dispatchCB 0xB2 = trace "RES6d"   $ iRES 6 d
+dispatchCB 0xB3 = trace "RES6e"   $ iRES 6 e
+dispatchCB 0xB4 = trace "RES6h"   $ iRES 6 h
+dispatchCB 0xB5 = trace "RES6l"   $ iRES 6 l
+dispatchCB 0xB6 = trace "RES6HLm" $ iRESHL 6 lHLm
+dispatchCB 0xB7 = trace "RES6a"   $ iRES 6 a
+dispatchCB 0xB8 = trace "RES7b"   $ iRES 7 b
+dispatchCB 0xB9 = trace "RES7c"   $ iRES 7 c
+dispatchCB 0xBA = trace "RES7d"   $ iRES 7 d
+dispatchCB 0xBB = trace "RES7e"   $ iRES 7 e
+dispatchCB 0xBC = trace "RES7h"   $ iRES 7 h
+dispatchCB 0xBD = trace "RES7l"   $ iRES 7 l
+dispatchCB 0xBE = trace "RES7HLm" $ iRESHL 7 lHLm
+dispatchCB 0xBF = trace "RES7a"   $ iRES 7 a
+
+dispatchCB 0xC0 = trace "SET0b"   $ iSET 0 b
+dispatchCB 0xC1 = trace "SET0c"   $ iSET 0 c
+dispatchCB 0xC2 = trace "SET0d"   $ iSET 0 d
+dispatchCB 0xC3 = trace "SET0e"   $ iSET 0 e
+dispatchCB 0xC4 = trace "SET0h"   $ iSET 0 h
+dispatchCB 0xC5 = trace "SET0l"   $ iSET 0 l
+dispatchCB 0xC6 = trace "SET0HLm" $ iSETHL 0 lHLm
+dispatchCB 0xC7 = trace "SET0a"   $ iSET 0 a
+dispatchCB 0xC8 = trace "SET1b"   $ iSET 1 b
+dispatchCB 0xC9 = trace "SET1c"   $ iSET 1 c
+dispatchCB 0xCA = trace "SET1d"   $ iSET 1 d
+dispatchCB 0xCB = trace "SET1e"   $ iSET 1 e
+dispatchCB 0xCC = trace "SET1h"   $ iSET 1 h
+dispatchCB 0xCD = trace "SET1l"   $ iSET 1 l
+dispatchCB 0xCE = trace "SET1HLm" $ iSETHL 1 lHLm
+dispatchCB 0xCF = trace "SET1a"   $ iSET 1 a
+
+dispatchCB 0xD0 = trace "SET2b"   $ iSET 2 b
+dispatchCB 0xD1 = trace "SET2c"   $ iSET 2 c
+dispatchCB 0xD2 = trace "SET2d"   $ iSET 2 d
+dispatchCB 0xD3 = trace "SET2e"   $ iSET 2 e
+dispatchCB 0xD4 = trace "SET2h"   $ iSET 2 h
+dispatchCB 0xD5 = trace "SET2l"   $ iSET 2 l
+dispatchCB 0xD6 = trace "SET2HLm" $ iSETHL 2 lHLm
+dispatchCB 0xD7 = trace "SET2a"   $ iSET 2 a
+dispatchCB 0xD8 = trace "SET3b"   $ iSET 3 b
+dispatchCB 0xD9 = trace "SET3c"   $ iSET 3 c
+dispatchCB 0xDA = trace "SET3d"   $ iSET 3 d
+dispatchCB 0xDB = trace "SET3e"   $ iSET 3 e
+dispatchCB 0xDC = trace "SET3h"   $ iSET 3 h
+dispatchCB 0xDD = trace "SET3l"   $ iSET 3 l
+dispatchCB 0xDE = trace "SET3HLm" $ iSETHL 3 lHLm
+dispatchCB 0xDF = trace "SET3a"   $ iSET 3 a
+
+dispatchCB 0xE0 = trace "SET4b"   $ iSET 4 b
+dispatchCB 0xE1 = trace "SET4c"   $ iSET 4 c
+dispatchCB 0xE2 = trace "SET4d"   $ iSET 4 d
+dispatchCB 0xE3 = trace "SET4e"   $ iSET 4 e
+dispatchCB 0xE4 = trace "SET4h"   $ iSET 4 h
+dispatchCB 0xE5 = trace "SET4l"   $ iSET 4 l
+dispatchCB 0xE6 = trace "SET4HLm" $ iSETHL 4 lHLm
+dispatchCB 0xE7 = trace "SET4a"   $ iSET 4 a
+dispatchCB 0xE8 = trace "SET5b"   $ iSET 5 b
+dispatchCB 0xE9 = trace "SET5c"   $ iSET 5 c
+dispatchCB 0xEA = trace "SET5d"   $ iSET 5 d
+dispatchCB 0xEB = trace "SET5e"   $ iSET 5 e
+dispatchCB 0xEC = trace "SET5h"   $ iSET 5 h
+dispatchCB 0xED = trace "SET5l"   $ iSET 5 l
+dispatchCB 0xEE = trace "SET5HLm" $ iSETHL 5 lHLm
+dispatchCB 0xEF = trace "SET5a"   $ iSET 5 a
+
+dispatchCB 0xF0 = trace "SET6b"   $ iSET 6 b
+dispatchCB 0xF1 = trace "SET6c"   $ iSET 6 c
+dispatchCB 0xF2 = trace "SET6d"   $ iSET 6 d
+dispatchCB 0xF3 = trace "SET6e"   $ iSET 6 e
+dispatchCB 0xF4 = trace "SET6h"   $ iSET 6 h
+dispatchCB 0xF5 = trace "SET6l"   $ iSET 6 l
+dispatchCB 0xF6 = trace "SET6HLm" $ iSETHL 6 lHLm
+dispatchCB 0xF7 = trace "SET6a"   $ iSET 6 a
+dispatchCB 0xF8 = trace "SET7b"   $ iSET 7 b
+dispatchCB 0xF9 = trace "SET7c"   $ iSET 7 c
+dispatchCB 0xFA = trace "SET7d"   $ iSET 7 d
+dispatchCB 0xFB = trace "SET7e"   $ iSET 7 e
+dispatchCB 0xFC = trace "SET7h"   $ iSET 7 h
+dispatchCB 0xFD = trace "SET7l"   $ iSET 7 l
+dispatchCB 0xFE = trace "SET7HLm" $ iSETHL 7 lHLm
+dispatchCB 0xFF = trace "SET7a"   $ iSET 7 a
 
 dispatchCB op' = error $ "Pefix CB not implemented for: " ++ (printf "0x%02x" op')
 
@@ -520,7 +664,8 @@ iPOP output = do
 iPrefCB :: VmS Clock
 iPrefCB = do
   jmpAddr <- readProgramB
-  addClock 1 4 <$> dispatchCB jmpAddr
+  -- Prefix 0xCB byte and cycles are already counted in dispatchCB's return.
+  dispatchCB jmpAddr
 
 -- | Read the byte pointed by CP and add it to CP
 iJR :: VmS Clock
@@ -632,6 +777,30 @@ iLDaCm = do
   addr <- ((+ 0xFF00) . fromIntegral) `liftM` use c
   a <~ rb addr `liftM` use mmu
   mkClock 1 8
+
+iSWAP :: Lens' Registers Word8 -> VmS Clock
+iSWAP io = iSWAPHL (registers . io) >> mkClock 2 8
+
+iSWAPHL :: Lens' Vm Word8 -> VmS Clock
+iSWAPHL io = do
+  value <- io <%= swap
+  fReset
+  lZf .= (0 == value)
+  mkClock 2 16
+
+iSET :: Int -> ASetter' Registers Word8 -> VmS Clock
+iSET b output = (registers . output %= (.|. (shiftL 1 b))) >> mkClock 2 8
+
+iSETHL :: Int -> ASetter' Vm Word8 -> VmS Clock
+iSETHL b output = (output %= (.|. (shiftL 1 b))) >> mkClock 2 16
+
+iRES :: Int -> ASetter' Registers Word8 -> VmS Clock
+iRES b output = do
+  registers . output %= (.&. (complement . shiftL 1 $ b))
+  mkClock 2 8
+
+iRESHL :: Int -> ASetter' Vm Word8 -> VmS Clock
+iRESHL b output = (output %= (.&. (complement . shiftL 1 $ b))) >> mkClock 2 16
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()

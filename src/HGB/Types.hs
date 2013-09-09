@@ -30,11 +30,17 @@ data Registers = Registers
     -- ^ Stack Pointer
   } deriving (Show, Eq)
 
+-- | Combine the two input bytes h and l into a Word16 as h:l.
 wCombine :: Word8 -> Word8 -> Word16
 wCombine h l = (shiftL (fromIntegral h) 8) .|. (fromIntegral l)
 
+-- | Break the higher and lower part of the input as (High, Low).
 wUncombine :: Word16 -> (Word8, Word8)
 wUncombine hl = (fromIntegral $ shiftR hl 8, fromIntegral hl)
+
+-- | Binary swap the 4 lower bits of the input with the 4 higher bits.
+swap :: Word8 -> Word8
+swap v = (shiftR v 4) .|. (shiftL v 4)
 
 instance Default Registers where
   def = Registers
