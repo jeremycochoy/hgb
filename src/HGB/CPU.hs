@@ -250,6 +250,23 @@ dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op'
 --   This function call the right bit instruction from the opcode.
 dispatchCB :: Word8 -> Instruction
 
+dispatchCB 0x00 = trace "RLCb"    $ iRLC b
+dispatchCB 0x01 = trace "RLCc"    $ iRLC c
+dispatchCB 0x02 = trace "RLCd"    $ iRLC d
+dispatchCB 0x03 = trace "RLCe"    $ iRLC e
+dispatchCB 0x04 = trace "RLCh"    $ iRLC h
+dispatchCB 0x05 = trace "RLCl"    $ iRLC l
+dispatchCB 0x06 = trace "RLCHLm"  $ iRLCHL lHLm
+dispatchCB 0x07 = trace "RLCa"    $ iRLC a
+dispatchCB 0x08 = trace "RRCb"    $ iRRC b
+dispatchCB 0x09 = trace "RRCc"    $ iRRC c
+dispatchCB 0x0A = trace "RRCd"    $ iRRC d
+dispatchCB 0x0B = trace "RRCe"    $ iRRC e
+dispatchCB 0x0C = trace "RRCh"    $ iRRC h
+dispatchCB 0x0D = trace "RRCl"    $ iRRC l
+dispatchCB 0x0E = trace "RRCHLm"  $ iRRCHL lHLm
+dispatchCB 0x0F = trace "RRCa"    $ iRRC a
+
 dispatchCB 0x30 = trace "SWAPb"   $ iSWAP b
 dispatchCB 0x31 = trace "SWAPc"   $ iSWAP c
 dispatchCB 0x32 = trace "SWAPd"   $ iSWAP d
@@ -471,10 +488,6 @@ fReset = f .= 0
 -- | Create a Clock in the VmS monad
 mkClock :: Word -> Word -> VmS Clock
 mkClock mV tV = return $ Clock mV tV
-
--- | Add time to a clock and output in the VmS monad
-addClock :: Word -> Word -> Clock -> Clock
-addClock mV tV clk = (m +~ mV) $ (t +~ tV) $ clk
 
 -- | No OPeration
 iNOP :: VmS Clock
@@ -789,18 +802,44 @@ iSWAPHL io = do
   mkClock 2 16
 
 iSET :: Int -> ASetter' Registers Word8 -> VmS Clock
-iSET b output = (registers . output %= (.|. (shiftL 1 b))) >> mkClock 2 8
+iSET bit output = (registers . output %= (.|. (shiftL 1 bit))) >> mkClock 2 8
 
 iSETHL :: Int -> ASetter' Vm Word8 -> VmS Clock
-iSETHL b output = (output %= (.|. (shiftL 1 b))) >> mkClock 2 16
+iSETHL bit output = (output %= (.|. (shiftL 1 bit))) >> mkClock 2 16
 
 iRES :: Int -> ASetter' Registers Word8 -> VmS Clock
-iRES b output = do
-  registers . output %= (.&. (complement . shiftL 1 $ b))
-  mkClock 2 8
+iRES bit output = iRESHL bit (registers . output) >> mkClock 2 8
 
 iRESHL :: Int -> ASetter' Vm Word8 -> VmS Clock
-iRESHL b output = (output %= (.&. (complement . shiftL 1 $ b))) >> mkClock 2 16
+iRESHL bit output = do
+  output %= (.&. (complement . shiftL 1 $ bit))
+  mkClock 2 16
+
+-- | Rotate left and place 7th bit into carry.
+iRLC :: Lens' Registers Word8 -> VmS Clock
+iRLC io = iRLCHL (registers . io) >> mkClock 2 8
+
+iRLCHL :: Lens' Vm Word8 -> VmS Clock
+iRLCHL io = do
+  value <- use io
+  io .= rotate value 1 -- Rotate left
+  fReset
+  lCf .= (value .&. 0x80 /= 0) -- Take old bit 7
+  lZf .= (value == 0)
+  mkClock 2 16
+
+-- | Rotate left and place 7th bit into carry.
+iRRC :: Lens' Registers Word8 -> VmS Clock
+iRRC io = iRRCHL (registers . io) >> mkClock 2 8
+
+iRRCHL :: Lens' Vm Word8 -> VmS Clock
+iRRCHL io = do
+  value <- use io
+  io .= rotate value (-1) -- Rotate right
+  fReset
+  lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
+  lZf .= (value == 0)
+  mkClock 2 16
 
 -- | Compare B to A and set the flags
 iCPr_b :: VmS ()
