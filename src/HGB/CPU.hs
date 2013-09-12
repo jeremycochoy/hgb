@@ -5,11 +5,10 @@ module HGB.CPU where
 import           Data.Word (Word8, Word16, Word)
 import           Control.Lens
 import           Control.Monad.State
-import           Control.Applicative
 import           HGB.Types
 import           HGB.MMU
 import           HGB.Lens
-import           Data.Bits
+import           Data.Bits hiding (bit)
 --import           Debug.Trace
 import           Text.Printf (printf)
 
@@ -523,7 +522,7 @@ dispatchCB 0xFD = trace "SET7l"   $ iSET 7 l
 dispatchCB 0xFE = trace "SET7HLm" $ iSETHL 7 lHLm
 dispatchCB 0xFF = trace "SET7a"   $ iSET 7 a
 
-dispatchCB op' = error $ "Pefix CB not implemented for: " ++ (printf "0x%02x" op')
+dispatchCB op' = error $ "Invalid Word8 in call to dispatchCB: " ++ (printf "0x%02x" op')
 
 -- | Reset the flags to 0
 fReset :: VmS ()
@@ -768,7 +767,7 @@ iJPf flag = do
 iCALL :: VmS Clock
 iCALL = do
   addr <- readProgramW
-  iPUSH pc
+  _ <- iPUSH pc
   pc .= addr
   mkClock 3 16
 
@@ -818,7 +817,7 @@ iBIT n input = iBITHL n (registers . input) >> mkClock 2 8
 iBITHL :: Int -> Getting Word8 Vm Word8 -> VmS Clock
 iBITHL n input = do
   value <- use input
-  lZf .= (0 == value .&. shiftL 1 n)
+  lZf .= testBit value n
   lCf .= False >> lHf .= True
   mkClock 2 16
 
@@ -846,18 +845,16 @@ iSWAPHL io = do
   mkClock 2 16
 
 iSET :: Int -> ASetter' Registers Word8 -> VmS Clock
-iSET bit output = (registers . output %= (.|. (shiftL 1 bit))) >> mkClock 2 8
+iSET bit output = (registers . output %= (flip setBit bit)) >> mkClock 2 8
 
 iSETHL :: Int -> ASetter' Vm Word8 -> VmS Clock
-iSETHL bit output = (output %= (.|. (shiftL 1 bit))) >> mkClock 2 16
+iSETHL bit output = (output %= (flip setBit bit)) >> mkClock 2 16
 
 iRES :: Int -> ASetter' Registers Word8 -> VmS Clock
-iRES bit output = iRESHL bit (registers . output) >> mkClock 2 8
+iRES bit output = (registers . output) %= (flip clearBit bit) >> mkClock 2 8
 
 iRESHL :: Int -> ASetter' Vm Word8 -> VmS Clock
-iRESHL bit output = do
-  output %= (.&. (complement . shiftL 1 $ bit))
-  mkClock 2 16
+iRESHL bit output = output %= (flip clearBit bit) >> mkClock 2 16
 
 -- | Rotate left and place 7th bit into carry.
 iRLC :: Lens' Registers Word8 -> VmS Clock
