@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE Rank2Types      #-}
 module HGB.CPU where
 
@@ -266,6 +267,23 @@ dispatchCB 0x0C = trace "RRCh"    $ iRRC h
 dispatchCB 0x0D = trace "RRCl"    $ iRRC l
 dispatchCB 0x0E = trace "RRCHLm"  $ iRRCHL lHLm
 dispatchCB 0x0F = trace "RRCa"    $ iRRC a
+
+dispatchCB 0x10 = trace "RLb"     $ iRL b
+dispatchCB 0x11 = trace "RLc"     $ iRL c
+dispatchCB 0x12 = trace "RLd"     $ iRL d
+dispatchCB 0x13 = trace "RLe"     $ iRL e
+dispatchCB 0x14 = trace "RLh"     $ iRL h
+dispatchCB 0x15 = trace "RLl"     $ iRL l
+dispatchCB 0x16 = trace "RLHLm"   $ iRLHL lHLm
+dispatchCB 0x17 = trace "RLa"     $ iRL a
+dispatchCB 0x18 = trace "RRb"     $ iRR b
+dispatchCB 0x19 = trace "RRc"     $ iRR c
+dispatchCB 0x1A = trace "RRd"     $ iRR d
+dispatchCB 0x1B = trace "RRe"     $ iRR e
+dispatchCB 0x1C = trace "RRh"     $ iRR h
+dispatchCB 0x1D = trace "RRl"     $ iRR l
+dispatchCB 0x1E = trace "RRHLm"   $ iRRHL lHLm
+dispatchCB 0x1F = trace "RRa"     $ iRR a
 
 dispatchCB 0x30 = trace "SWAPb"   $ iSWAP b
 dispatchCB 0x31 = trace "SWAPc"   $ iSWAP c
@@ -822,10 +840,10 @@ iRLC io = iRLCHL (registers . io) >> mkClock 2 8
 iRLCHL :: Lens' Vm Word8 -> VmS Clock
 iRLCHL io = do
   value <- use io
-  io .= rotate value 1 -- Rotate left
+  res <- io <.= rotate value 1 -- Rotate left
   fReset
   lCf .= (value .&. 0x80 /= 0) -- Take old bit 7
-  lZf .= (value == 0)
+  lZf .= (res == 0)
   mkClock 2 16
 
 -- | Rotate left and place 7th bit into carry.
@@ -835,10 +853,42 @@ iRRC io = iRRCHL (registers . io) >> mkClock 2 8
 iRRCHL :: Lens' Vm Word8 -> VmS Clock
 iRRCHL io = do
   value <- use io
-  io .= rotate value (-1) -- Rotate right
+  res <- io <.= rotate value (-1) -- Rotate right
   fReset
   lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
-  lZf .= (value == 0)
+  lZf .= (res == 0)
+  mkClock 2 16
+
+-- | Rotate left throught carry
+--
+--  7th bit go into carry, carry bit is now the lowest byte.
+iRL :: Lens' Registers Word8 -> VmS Clock
+iRL io = iRLHL (registers . io) >> mkClock 2 8
+
+iRLHL :: Lens' Vm Word8 -> VmS Clock
+iRLHL io = do
+  value <- use io
+  bit <- (\case False -> 0 ; True -> 1) `liftM` use lCf
+  res <- io <.= (shiftL value 1) .|. bit
+  fReset
+  lCf .= (value .&. 0x80 /= 0) -- Take old bit 7
+  lZf .= (res == 0)
+  mkClock 2 16
+
+-- | Rotate right throught carry
+--
+--  0th bit go into carry, carry bit is now the highest byte.
+iRR :: Lens' Registers Word8 -> VmS Clock
+iRR io = iRRHL (registers . io) >> mkClock 2 8
+
+iRRHL :: Lens' Vm Word8 -> VmS Clock
+iRRHL io = do
+  value <- use io
+  bit <- (\case False -> 0 ; True -> 1) `liftM` use lCf
+  res <- io <.= (shiftR value 1) .|. (shiftL bit 7)
+  fReset
+  lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
+  lZf .= (res == 0)
   mkClock 2 16
 
 -- | Compare B to A and set the flags
