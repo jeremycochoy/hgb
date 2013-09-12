@@ -285,6 +285,23 @@ dispatchCB 0x1D = trace "RRl"     $ iRR l
 dispatchCB 0x1E = trace "RRHLm"   $ iRRHL lHLm
 dispatchCB 0x1F = trace "RRa"     $ iRR a
 
+dispatchCB 0x20 = trace "SLAb"    $ iSLA b
+dispatchCB 0x21 = trace "SLAc"    $ iSLA c
+dispatchCB 0x22 = trace "SLAd"    $ iSLA d
+dispatchCB 0x23 = trace "SLAe"    $ iSLA e
+dispatchCB 0x24 = trace "SLAh"    $ iSLA h
+dispatchCB 0x25 = trace "SLAl"    $ iSLA l
+dispatchCB 0x26 = trace "SLAHLm"  $ iSLAHL lHLm
+dispatchCB 0x27 = trace "SLAa"    $ iSLA a
+dispatchCB 0x28 = trace "SRAb"    $ iSRA b
+dispatchCB 0x29 = trace "SRAc"    $ iSRA c
+dispatchCB 0x2A = trace "SRAd"    $ iSRA d
+dispatchCB 0x2B = trace "SRAe"    $ iSRA e
+dispatchCB 0x2C = trace "SRAh"    $ iSRA h
+dispatchCB 0x2D = trace "SRAl"    $ iSRA l
+dispatchCB 0x2E = trace "SRAHLm"  $ iSRAHL lHLm
+dispatchCB 0x2F = trace "SRAa"    $ iSRA a
+
 dispatchCB 0x30 = trace "SWAPb"   $ iSWAP b
 dispatchCB 0x31 = trace "SWAPc"   $ iSWAP c
 dispatchCB 0x32 = trace "SWAPd"   $ iSWAP d
@@ -292,6 +309,15 @@ dispatchCB 0x33 = trace "SWAPe"   $ iSWAP e
 dispatchCB 0x34 = trace "SWAPh"   $ iSWAP h
 dispatchCB 0x35 = trace "SWAPl"   $ iSWAP l
 dispatchCB 0x36 = trace "SWAPHLm" $ iSWAPHL lHLm
+dispatchCB 0x37 = trace "SWAPa"   $ iSWAP a
+dispatchCB 0x38 = trace "SRAb"    $ iSRL b
+dispatchCB 0x39 = trace "SRAc"    $ iSRL c
+dispatchCB 0x3A = trace "SRAd"    $ iSRL d
+dispatchCB 0x3B = trace "SRAe"    $ iSRL e
+dispatchCB 0x3C = trace "SRAh"    $ iSRL h
+dispatchCB 0x3D = trace "SRAl"    $ iSRL l
+dispatchCB 0x3E = trace "SRAHLm"  $ iSRLHL lHLm
+dispatchCB 0x3F = trace "SRAa"    $ iSRL a
 
 dispatchCB 0x40 = trace "BIT0b"   $ iBIT 0 b
 dispatchCB 0x41 = trace "BIT0c"   $ iBIT 0 c
@@ -886,6 +912,51 @@ iRRHL io = do
   value <- use io
   bit <- (\case False -> 0 ; True -> 1) `liftM` use lCf
   res <- io <.= (shiftR value 1) .|. (shiftL bit 7)
+  fReset
+  lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
+  lZf .= (res == 0)
+  mkClock 2 16
+
+-- | Shift Left to carry
+--
+--  Shift left. The 7th bit is placed into carry, the 0th is now 0.
+iSLA :: Lens' Registers Word8 -> VmS Clock
+iSLA io = iSLAHL (registers . io) >> mkClock 2 8
+
+iSLAHL :: Lens' Vm Word8 -> VmS Clock
+iSLAHL io = do
+  value <- use io
+  res <- io <.= (shiftL value 1)
+  fReset
+  lCf .= (value .&. 0x80 /= 0) -- Take old bit 7
+  lZf .= (res == 0)
+  mkClock 2 16
+
+-- | Shift Right to carry
+--
+--  Shift Right. The 7th bit is unchanged, the 0th is placed into carry.
+iSRA :: Lens' Registers Word8 -> VmS Clock
+iSRA io = iSRAHL (registers . io) >> mkClock 2 8
+
+iSRAHL :: Lens' Vm Word8 -> VmS Clock
+iSRAHL io = do
+  value <- use io
+  res <- io <.= (shiftR value 1) .|. (value .&. 0x80)
+  fReset
+  lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
+  lZf .= (res == 0)
+  mkClock 2 16
+
+-- | Shift right to carry
+--
+--  Shift Right. The 7th bit is 0, the 0th is placed into carry.
+iSRL :: Lens' Registers Word8 -> VmS Clock
+iSRL io = iSRLHL (registers . io) >> mkClock 2 8
+
+iSRLHL :: Lens' Vm Word8 -> VmS Clock
+iSRLHL io = do
+  value <- use io
+  res <- io <.= (shiftR value 1)
   fReset
   lCf .= (value .&. 0x01 /= 0) -- Take old bit 0
   lZf .= (res == 0)
