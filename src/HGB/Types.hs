@@ -104,6 +104,10 @@ data Mmu = Mmu
   -- ^ C000-CFFF   4KB Work RAM Bank 0 (WRAM)
   , _swram :: !(V.Vector Word8)
   -- ^ D000-DFFF   4KB Work RAM Bank 1 (WRAM)
+  , _oam   :: !(V.Vector Word8)
+  -- ^ FE00-FE9F   Sprite Attribute Table (OAM)
+  , _hram  :: !(V.Vector Word8)
+  -- ^ FF80-FFFE   High RAM (HRAM)
   , _ier   :: Word8
   -- ^ FFFF   Interrupt Enable Register
   , _biosEnabled :: Bool
@@ -137,6 +141,8 @@ instance Default Mmu where
     , _eram  = emptyMem [0xA000..0xBFFF]
     , _wram  = emptyMem [0xC000..0xCFFF]
     , _swram = emptyMem [0xD000..0xDFFF]
+    , _oam   = emptyMem [0xFE00..0xFE9F]
+    , _hram  = emptyMem [0xFF80..0xFFFE]
     , _ier = 0x00
     , _biosEnabled = True
     , _mmuGpu = def

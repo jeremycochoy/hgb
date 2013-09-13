@@ -47,7 +47,9 @@ rb addr mmu'
   | addr < 0xD000 = mmu' ^. wram  !& (addr - 0xC000)
   | addr < 0xE000 = mmu' ^. swram !& (addr - 0xD000)
   | addr < 0xFE00 = mmu' ^. wram  !& (addr - 0xE000)
+  | addr < 0xFEA0 = mmu' ^. oam   !& (addr - 0xFE00)
   | addr == 0xFFFF = mmu' ^. ier
+  | addr >= 0xFF80 = mmu' ^. hram !& (addr - 0xFF80)
   | otherwise = 0 -- TODO
 
 -- | Read a word from MMU
@@ -62,7 +64,10 @@ wb addr value mmu'
   | addr < 0xC000 = eram  %~ up (addr - 0xA000) $ mmu'
   | addr < 0xD000 = wram  %~ up (addr - 0xC000) $ mmu'
   | addr < 0xE000 = swram %~ up (addr - 0xD000) $ mmu'
+  | addr < 0xFE00 = wram  %~ up (addr - 0xE000) $ mmu'
+  | addr < 0xFEA0 = oam   %~ up (addr - 0xFE00) $ mmu'
   | addr == 0xFFFF = ier .~ value $ mmu'
+  | addr >= 0xFF80 = hram %~ up (addr - 0xFF80) $ mmu'
   | otherwise = mmu' -- TODO
   where
     up addr vec = vec // [(fromIntegral addr, value)]

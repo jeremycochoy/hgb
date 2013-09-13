@@ -59,11 +59,13 @@ dispatch 0x03 = trace "INCBC"    $ iINCr16 lBC
 dispatch 0x04 = trace "INCb"     $ iINC b
 dispatch 0x05 = trace "DECb"     $ iDEC b
 dispatch 0x06 = trace "LDbd8"    $ iLDd8 b
+dispatch 0x07 = trace "RLCa"     $ iRLC a
 dispatch 0x0A = trace "LDaBCm"   $ iLDHL a lBCm
 dispatch 0x0B = trace "DECBC"    $ iDECr16 lBC
 dispatch 0x0C = trace "INCc"     $ iINC c
 dispatch 0x0D = trace "DECc"     $ iDEC c
 dispatch 0x0E = trace "LDcd8"    $ iLDd8 c
+dispatch 0x0F = trace "RRCa"     $ iRRC a
 
 dispatch 0x11 = trace "LDSPd16"  $ iLDd16 lDE
 dispatch 0x12 = trace "LDDEma"   $ iLDHL lDEm a
@@ -71,12 +73,14 @@ dispatch 0x13 = trace "INCDE"    $ iINCr16 lDE
 dispatch 0x14 = trace "INCd"     $ iINC d
 dispatch 0x15 = trace "DECd"     $ iDEC d
 dispatch 0x16 = trace "LDdd8"    $ iLDd8 d
+dispatch 0x17 = trace "RLa"      $ iRL a
 dispatch 0x18 = trace "JRr8"     $ iJR
 dispatch 0x1A = trace "LDaDEm"   $ iLDHL a lDEm
 dispatch 0x1B = trace "DECDE"    $ iDECr16 lDE
 dispatch 0x1C = trace "INCe"     $ iINC e
 dispatch 0x1D = trace "DECe"     $ iDEC e
 dispatch 0x1E = trace "LDed8"    $ iLDd8 e
+dispatch 0x1F = trace "RCa"      $ iRR a
 
 dispatch 0x20 = trace "JRNZr8"   $ iJRf lNZf
 dispatch 0x21 = trace "LDSPd16"  $ iLDd16 lHL
@@ -705,8 +709,8 @@ iDECHL field = do
 -- | Push the value on the stack
 iPUSH :: Getting Word16 Registers Word16 -> VmS Clock
 iPUSH input = do
-  lSPm16 <~ use (registers . input)
   sp -= 2
+  lSPm16 <~ use (registers . input)
   mkClock 1 16
 
 -- | Pop the value from the stack
