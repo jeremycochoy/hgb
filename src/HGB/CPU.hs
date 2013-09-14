@@ -169,7 +169,6 @@ dispatch 0x74 = trace "LDHLmh"    $ iLDHL lHLm h
 dispatch 0x75 = trace "LDHLml"    $ iLDHL lHLm l
 dispatch 0x76 = trace "halt"      $ undefined
 dispatch 0x77 = trace "LDHLmc"    $ iLDHL lHLm a
-
 dispatch 0x78 = trace "LDlb"      $ iLD a b
 dispatch 0x79 = trace "LDlc"      $ iLD a c
 dispatch 0x7A = trace "LDld"      $ iLD a d
@@ -178,6 +177,15 @@ dispatch 0x7C = trace "LDlh"      $ iLD a h
 dispatch 0x7D = trace "LDll"      $ iLD a l
 dispatch 0x7E = trace "LDaHLm"    $ iLDHL a lHLm
 dispatch 0x7F = trace "LDaa"      $ iLD a a
+
+dispatch 0x90 = trace "SUBb"      $ iSUB b
+dispatch 0x91 = trace "SUBc"      $ iSUB c
+dispatch 0x92 = trace "SUBd"      $ iSUB d
+dispatch 0x93 = trace "SUBe"      $ iSUB e
+dispatch 0x94 = trace "SUBh"      $ iSUB h
+dispatch 0x95 = trace "SUBl"      $ iSUB l
+dispatch 0x96 = trace "SUBHLm"    $ iSUBHL lHLm
+dispatch 0x97 = trace "SUBa"      $ iSUB a
 
 dispatch 0xA8 = trace "XORb"      $ iXOR b
 dispatch 0xA9 = trace "XORc"      $ iXOR c
@@ -196,7 +204,14 @@ dispatch 0xB4 = trace "ORh"       $ iOR h
 dispatch 0xB5 = trace "ORl"       $ iOR l
 dispatch 0xB6 = trace "ORHLm"     $ iORHL lHLm
 dispatch 0xB7 = trace "ORa"       $ iOR a
-dispatch 0xB8 = trace "CPb"       $ iCPr_b >> mkClock 1 4
+dispatch 0xB8 = trace "CPb"       $ iCP b
+dispatch 0xB9 = trace "CPc"       $ iCP c
+dispatch 0xBA = trace "CPd"       $ iCP d
+dispatch 0xBB = trace "CPe"       $ iCP e
+dispatch 0xBC = trace "CPh"       $ iCP h
+dispatch 0xBD = trace "CPl"       $ iCP l
+dispatch 0xBE = trace "CPHLm"     $ iCPHL lHLm
+dispatch 0xBF = trace "CPa"       $ iCP a
 
 dispatch 0xC0 = trace "RETNZ"     $ iRETf lNZf
 dispatch 0xC1 = trace "POPBC"     $ iPOP lBC
@@ -217,6 +232,7 @@ dispatch 0xD2 = trace "JPNC"      $ iJPf lNCf
 dispatch 0xD3 = trace "none"      $ iNone 0xD3
 dispatch 0xD4 = trace "CALLNC"    $ iCALLf lNCf
 dispatch 0xD5 = trace "PUSHDE"    $ iPUSH lDE
+dispatch 0xD6 = trace "SUBd8"     $ iSUBd8
 dispatch 0xD8 = trace "RETC"      $ iRETf lCf
 dispatch 0xD9 = trace "RETI"      $ iRETI
 dispatch 0xDA = trace "JPC"       $ iJPf lCf
@@ -247,6 +263,7 @@ dispatch 0xFA = trace "LDaa16"    $ iLDaa16
 dispatch 0xFB = trace "EI"        $ iEI
 dispatch 0xFC = trace "none"      $ iNone 0xFC
 dispatch 0xFD = trace "none"      $ iNone 0xFD
+dispatch 0xFE = trace "CPd8"      $ iCPd8
 
 dispatch op'   = error $ "Instruction not implemented: " ++ (printf "0x%02x" op')
 
@@ -963,16 +980,42 @@ iSRLHL io = do
   lZf .= (res == 0)
   mkClock 2 16
 
--- | Compare B to A and set the flags
-iCPr_b :: VmS ()
-iCPr_b = do
+-- | Compare input to A and set the flags Z/H/C, reset N.
+iCP :: Getting Word8 Registers Word8 -> VmS Clock
+iCP input = use (registers . input) >>= iSUBimp >> mkClock 1 4
+
+-- | Compare (HL) to A and set the flags Z/H/C, reset N.
+iCPHL :: Getting Word8 Vm Word8 -> VmS Clock
+iCPHL input = use (input) >>= iSUBimp >> mkClock 1 8
+
+-- | Compare (HL) to A and set the flags Z/H/C, reset N.
+iCPd8 :: VmS Clock
+iCPd8 = readProgramB >>= iSUBimp >> mkClock 2 8
+
+-- | Substract the input value to A, and place the result in A.
+--
+--   Set the right flags, reset N.
+--
+--   Syntax : A <- A - input
+iSUB :: Getting Word8 Registers Word8 -> VmS Clock
+iSUB input = a <~ (iSUBimp =<< use (registers . input)) >> mkClock 1 4
+
+iSUBHL :: Getting Word8 Vm Word8 -> VmS Clock
+iSUBHL input = a <~ (iSUBimp =<< use input) >> mkClock 1 8
+
+iSUBd8 :: VmS Clock
+iSUBd8 = a <~ (iSUBimp =<< readProgramB) >> mkClock 2 8
+
+iSUBimp :: Word8 -> VmS Word8
+iSUBimp value = do
   a' <- use $ a
-  b' <- use $ b
+  let b' = value
   let diff = a' - b'
   fReset
   lCf .= (a' < b')
   lZf .= (0 == diff)
-  lHf .= True
+  lHf .= ((0x0F.&.a' - 0x0F.&.b') .&. 0x10 /= 0)
+  return diff
 
 iNone :: Word8 -> VmS Clock
 iNone op' = error $ "This instruction desn't exists: " ++ (printf "0x%02x" op')
