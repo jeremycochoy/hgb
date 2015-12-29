@@ -68,12 +68,15 @@ colorFromTileRow pixels = unfoldr readColor (0, l, h)
           h' = h `shiftL` 1
           color = numToGS $ (h `shiftR` 7) * 2 + (l `shiftR` 7)
 
+-- | Give the binary flag associated to the GPU Mode
 gpuModeBinary :: GpuMode -> Word8
 gpuModeBinary HorizontalBlank = 0
 gpuModeBinary ScanlineOAM     = 2
 gpuModeBinary ScanlineVRAM    = 3
 gpuModeBinary VerticalBlank   = 1
 
+-- | Switch the GPU mode (Scanline, VBlank, HBLanc...) by looking
+--   at the time enlapsed.
 updateGPUmode :: Word -> VmS ()
 updateGPUmode t = do
   -- Update the clock value
@@ -107,6 +110,7 @@ updateGPUmode t = do
     _ -> return ()
 
 
+-- | Render a line of pixel from the background map and tile set.
 renderLine :: VmS ()
 renderLine = do
   return ()
