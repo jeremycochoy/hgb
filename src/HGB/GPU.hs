@@ -11,6 +11,7 @@ import           HGB.MMU
 import           HGB.Lens
 import           Data.List (unfoldr)
 import           Data.Bits hiding (bit)
+import           Debug.Trace
 
 
 -- | Read a word from the tile map starting at 'addr'
@@ -28,19 +29,28 @@ readTileMap1 = readTileMapI 0x9C00
 -- | Read the line 'line' from tile 'tileID'
 --   from the tile set located at 'addr'
 --   as a list of Word16 pixels
-readTileLineI :: Word16 -> Int16 -> Word8 -> Mmu -> Word16
-readTileLineI addr tileID line mmu' = rw lineAddr mmu'
+readTileLineI :: Word16 -> Mmu -> Word8 -> Int16 -> Word16
+readTileLineI addr mmu' line tileID = rw lineAddr mmu'
   where
     tileAddr = addr + (fromIntegral tileID) * 16
     lineAddr = tileAddr + (fromIntegral line) * 2
 
 -- | Read a tile from tile set 0 at location loc
-readTileLine0 :: Word8 -> Word8 -> Mmu -> Word16
-readTileLine0 tileID = readTileLineI 0x8000 (fromIntegral tileID)
-readTileLine1 :: Word8 -> Word8 -> Mmu -> Word16
-readTileLine1 tileID = readTileLineI 0x9000 (fromIntegral signedTileID)
+readTileLine0 :: Mmu -> Word8 -> Word8 -> Word16
+readTileLine0 mmu' line tileID = readTileLineI 0x8000 mmu' line (fromIntegral tileID)
+readTileLine1 :: Mmu -> Word8 -> Word8 -> Word16
+readTileLine1 mmu' line tileID = readTileLineI 0x9000 mmu' line (fromIntegral signedTileID)
   where
     signedTileID = (fromIntegral tileID) :: Int8
+
+-- | Take the x and y in tile unit, and give back
+--   the list of the tile numbers.
+readTileMapLine0 :: Word16 -> Word16 -> Mmu -> [Word8]
+readTileMapLine0 x y mmu' = unfoldr getTile 0
+  where
+    getTile idx = case idx of
+      20 -> Nothing
+      _ -> Just $ (readTileMap0 (x + idx) y mmu', idx + 1)
 
 -- | Take tile line, and produce a list of 8 pixels.
 --   each pixel is of one of the four colors in the 'GreyScale'.
@@ -113,5 +123,29 @@ updateGPUmode t = do
 -- | Render a line of pixel from the background map and tile set.
 renderLine :: VmS ()
 renderLine = do
+  line <- use gpuLine
+  mmu' <- use mmu
+  x' <- fromIntegral `fmap` use scx
+  y' <- (fromIntegral . (+line) . fromIntegral) `fmap` use scy
+  --
+  let tileMapLine = readTileMapLine0 (x' `div` 8) (y' `div` 8) mmu'
+  let tilesToPixels = colorFromTileRow
+                      . readTileLine0 mmu' (fromIntegral line)
+                      . fromIntegral
+  let pixels = tilesToPixels `concatMap` tileMapLine
+  --
+  mapM (\(o, c) -> updateColor (x' + o) y' c) $ zip [0..] pixels
   return ()
-
+  where
+    updateColor :: Word16 -> Word16 -> GreyScale -> VmS ()
+    updateColor x y c = do
+      gpuRendMem x' y' RED   .= grey c
+      gpuRendMem x' y' GREEN .= grey c
+      gpuRendMem x' y' BLUE  .= grey c
+      where
+        x' = fromIntegral x
+        y' = fromIntegral y
+        grey WHITE     = 255
+        grey LIGHTGREY = 192
+        grey DARKGREY  = 96
+        grey BLACK     = 0

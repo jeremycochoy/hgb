@@ -138,7 +138,7 @@ data Gpu = Gpu { _vram     :: !(V.Vector Word8)
                  -- ^ Current mode of the GPU
                , _gpuClock :: !Word
                  -- ^ Clock used to witch modes
-               , _gpuLine  :: !Word
+               , _gpuLine  :: !Word16
                  -- ^ Number of the current line
                , _renderingMem :: !(V.Vector Word8)
                  -- ^ Memory used for rendering the screen

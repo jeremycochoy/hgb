@@ -23,7 +23,7 @@ main = do
         Right vm'' -> do
           putStrLn . groom $ vm'' ^. cartridge
           putStrLn . groom $ vm'' ^. cpu
-          runStep'' 0 vm''
+          runStep' vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -39,8 +39,8 @@ runStep oldVm = do
 runStep' :: Vm -> IO ()
 runStep' oldVm = do
   newVM <- return . execState exec $ oldVm
-  putStr . show $ newVM ^. registers
-  putStr "\r"
+--  putStr . show $ newVM ^. registers
+--  putStr "\r"
   newVM `seq` runStep' newVM
 
 runStep'' :: Int -> Vm -> IO ()
