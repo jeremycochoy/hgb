@@ -33,6 +33,7 @@ import           Data.Vector.Unboxed ((!), (//))
 import           Control.Lens
 import qualified Data.Vector.Unboxed
 
+-- | Same operator as Vector.Unboxed.!
 (!&) :: Integral a => Data.Vector.Unboxed.Vector Word8 -> a -> Word8
 (!&) a b = a ! (fromIntegral b)
 infixr 3 !&
@@ -80,11 +81,3 @@ ww :: Word16 -> Word16 -> Mmu -> Mmu
 ww addr value mmu' = wb (addr + 1) h' . wb addr l' $ mmu'
   where
     (h', l') = wUncombine value
-
--- | Read a word from the tile map 0
-readTileMap0 :: Word16 -> Word16 -> Mmu -> Word8
-readTileMap0 x y mmu' = rb (0x9800 + x + y * 256) mmu'
-
--- | Read a word from the tile map 1
-readTileMap1 :: Word16 -> Word16 -> Mmu -> Word8
-readTileMap1 x y mmu' = rb (0x9C00 + x + y * 256) mmu'

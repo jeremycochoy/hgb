@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module HGB.Types
     ( module HGB.Types
@@ -84,6 +85,26 @@ instance Default Cpu where
     , _cpuClock = def
     , _interrupt = IDisabled
     }
+
+-- | Grey color if the GB,
+--   0 is 'WHITE' and 3 is 'BLACK'.
+data GreyScale = WHITE
+               | LIGHTGREY
+               | DARKGREY
+               | BLACK
+               deriving (Show, Eq, Ord, Enum)
+
+gsToNum :: (Integral a) => GreyScale -> a
+gsToNum WHITE = 0
+gsToNum LIGHTGREY = 1
+gsToNum DARKGREY = 2
+gsToNum BLACK = 3
+
+numToGS :: (Integral a) => a -> GreyScale
+numToGS 0 = WHITE
+numToGS 1 = LIGHTGREY
+numToGS 2 = DARKGREY
+numToGS _ = BLACK
 
 data Color = RED | GREEN | BLUE
 
