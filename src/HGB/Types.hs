@@ -121,9 +121,9 @@ data Gpu = Gpu { _vram     :: !(V.Vector Word8)
                  -- ^ Number of the current line
                , _renderingMem :: !(V.Vector Word8)
                  -- ^ Memory used for rendering the screen
-               , scx :: !Word8
+               , _scx :: !Word8
                  -- ^ Scroll X register
-               , scy :: !Word8
+               , _scy :: !Word8
                  -- ^ Scroll Y register
                } deriving (Show, Eq)
 
@@ -139,6 +139,8 @@ instance Default Gpu where
     , _gpuClock = 0
     , _gpuLine = 0
     , _renderingMem = emptyMem [0..144*166*3]
+    , _scx = 0
+    , _scy = 0
     }
 
 -- | The MMU (memory)
