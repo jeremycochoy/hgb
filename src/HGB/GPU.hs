@@ -127,16 +127,19 @@ renderLine = do
   mmu' <- use mmu
   x' <- fromIntegral `fmap` use scx
   y' <- (fromIntegral . (+line) . fromIntegral) `fmap` use scy
-  --
+  -- Compute the list of tiles id in the line y
   let tileMapLine = readTileMapLine0 (x' `div` 8) (y' `div` 8) mmu'
   let tilesToPixels = colorFromTileRow
-                      . readTileLine0 mmu' (fromIntegral line)
+                      . readTileLine0 mmu' (fromIntegral (y' `rem` 8 + 1))
                       . fromIntegral
   let pixels = tilesToPixels `concatMap` tileMapLine
   --
-  mapM (\(o, c) -> updateColor (x' + o) y' c) $ zip [0..] pixels
+  mapM (\(o, c) -> updateColor (x' + o) y' c) $
+    zip [0..] (drop (fromIntegral $ x' `rem` 8) pixels)
   return ()
   where
+    -- | Update the pixel of the rendering memory at location
+    --   ('x', 'y') with the color 'c'.
     updateColor :: Word16 -> Word16 -> GreyScale -> VmS ()
     updateColor x y c = do
       gpuRendMem x' y' RED   .= grey c
