@@ -85,6 +85,15 @@ instance Default Cpu where
     , _interrupt = IDisabled
     }
 
+data Color = RED | GREEN | BLUE
+
+-- | Give the offset in a 'Word8' 'Vector' to access the 'Color'
+colorOffset :: Integral a => Color -> a
+colorOffset RED   = 0
+colorOffset GREEN = 1
+colorOffset BLUE  = 2
+
+
 data GpuMode = HorizontalBlank
                -- ^ Horizontable blank mode. Both
                --   OAM and VRAM are accessible.
@@ -101,6 +110,7 @@ data GpuMode = HorizontalBlank
                --   OAM and VRAM are accessible.
              deriving (Show, Eq)
 
+-- | Represent the memory, registers and flags
 data Gpu = Gpu { _vram     :: !(V.Vector Word8)
                  -- ^ Vram
                , _gpuMode  :: !GpuMode
@@ -109,9 +119,18 @@ data Gpu = Gpu { _vram     :: !(V.Vector Word8)
                  -- ^ Clock used to witch modes
                , _gpuLine  :: !Word
                  -- ^ Number of the current line
-               , renderingMem :: !(V.Vector Word8)
+               , _renderingMem :: !(V.Vector Word8)
                  -- ^ Memory used for rendering the screen
+               , scx :: !Word8
+                 -- ^ Scroll X register
+               , scy :: !Word8
+                 -- ^ Scroll Y register
                } deriving (Show, Eq)
+
+-- | Compute the location of the pixel ('x','y') of color 'c'
+--   in the 'renderingMem' field of 'Gpu'.
+rendMemLoc :: Int -> Int -> Color -> Int
+rendMemLoc x y c = ((x + y * 160) * 3 + (colorOffset c))
 
 instance Default Gpu where
   def = Gpu
@@ -119,7 +138,7 @@ instance Default Gpu where
     , _gpuMode = HorizontalBlank
     , _gpuClock = 0
     , _gpuLine = 0
-    , renderingMem = emptyMem [0..144*166*3]
+    , _renderingMem = emptyMem [0..144*166*3]
     }
 
 -- | The MMU (memory)

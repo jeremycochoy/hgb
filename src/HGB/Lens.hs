@@ -9,6 +9,7 @@ import           Control.Applicative
 import           Data.Word (Word8, Word16)
 import           Data.Bits
 import           Data.Bits.Lens
+import qualified Data.Vector.Unboxed as V
 
 -- | Z flag saw as a lens
 lZf :: HasRegisters t => Lens' t Bool
@@ -119,3 +120,19 @@ la16 addr f' vm' = (\v -> mmu %~ (wb addr v) $ vm') <$> f' (rb addr (vm' ^. mmu)
 -- | Read from (0xFF00 + addrL) where addrL is the address given.
 la8 :: Word8 -> Lens' Vm Word8
 la8 addrL f' vm' = la16 (0xFF00 + fromIntegral addrL) f' vm'
+
+
+-- | Video rendering memory saw as a lens
+gpuRendMem :: Int -> Int -> Color -> Lens' Vm Word8
+gpuRendMem x y color f' vm' = (writeGpuRendMem x y color vm') <$>
+                  f' (readGpuRendMem x y color vm')
+
+-- | RR (where R means a register) saw as a lens
+writeGpuRendMem :: HasGpu r => Int -> Int -> Color -> r -> Word8 -> r
+writeGpuRendMem x y c gpu v = renderingMem %~ up $ gpu
+  where
+    up vec = vec V.// [(rendMemLoc x y c, v)]
+
+-- | Compute r:r as a 16 bits addr
+readGpuRendMem :: HasGpu r => Int -> Int -> Color -> r ->  Word8
+readGpuRendMem x y c vm = (vm ^. renderingMem) V.! rendMemLoc x y c
