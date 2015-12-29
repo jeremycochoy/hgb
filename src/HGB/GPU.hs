@@ -153,15 +153,15 @@ renderLine = do
         grey DARKGREY  = 96
         grey BLACK     = 0
 
-showRenderedMem :: Vm -> [[Char]]
-showRenderedMem vm' = unfoldr getLine 0
+showRenderedMem :: Mmu -> [[Char]]
+showRenderedMem mmu' = unfoldr getLine 0
   where
     getLine y = case y of
       144 -> Nothing
       _   -> Just (unfoldr (getPixel y) 0, y + 1)
     getPixel y x = case x of
       160 -> Nothing
-      _   -> Just (selectChar $ vm' ^. (gpuRendMem x y RED), x + 1)
+      _   -> Just (selectChar $ mmu' ^. (gpuRendMem x y RED), x + 1)
     selectChar 255 = ' '
     selectChar 192 = '.'
     selectChar 96  = '%'

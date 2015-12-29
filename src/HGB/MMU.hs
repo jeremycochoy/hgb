@@ -29,6 +29,7 @@ module HGB.MMU
 
 import           Data.Word (Word8, Word16)
 import           HGB.Types
+import           HGB.IO
 import           Data.Vector.Unboxed ((!), (//))
 import           Control.Lens
 import qualified Data.Vector.Unboxed

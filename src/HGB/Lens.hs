@@ -123,7 +123,7 @@ la8 addrL f' vm' = la16 (0xFF00 + fromIntegral addrL) f' vm'
 
 
 -- | Video rendering memory saw as a lens
-gpuRendMem :: Int -> Int -> Color -> Lens' Vm Word8
+gpuRendMem :: HasGpu r => Int -> Int -> Color -> Lens' r Word8
 gpuRendMem x y color f' vm' = (writeGpuRendMem x y color vm') <$>
                   f' (readGpuRendMem x y color vm')
 
