@@ -7,6 +7,7 @@ import           Control.Lens
 import           Control.Monad.State
 import           HGB.Types
 import           HGB.MMU
+import           HGB.GPU
 import           HGB.Lens
 import           Data.Bits hiding (bit)
 --import           Debug.Trace
@@ -40,7 +41,7 @@ exec = do
   t += inst ^. t
   m += inst ^. m
 
-  --TODO : Add GPU Here
+  updateGPUmode (inst ^. t)
 
   switchInterrupt interruptState
   where

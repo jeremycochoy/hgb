@@ -85,20 +85,32 @@ instance Default Cpu where
     , _interrupt = IDisabled
     }
 
-data GpuMode = ScanlineOAM
+data GpuMode = HorizontalBlank
+               -- ^ Horizontable blank mode. Both
+               --   OAM and VRAM are accessible.
+             | ScanlineOAM
+               -- ^ First part of the scanline mode.
+               --   The OAM is used and unaccessible from
+               --   the CPU.
              | ScanlineVRAM
-             | HorizontalBlank
+               -- ^ Second part of the scanline mode.
+               --   Both OAM and VRAM are used by the GPU
+               --   and are unaccessible from the CPU.
              | VerticalBlank
+               -- ^ Vertical blank mode. Both
+               --   OAM and VRAM are accessible.
              deriving (Show, Eq)
 
 data Gpu = Gpu { _vram     :: !(V.Vector Word8)
                  -- ^ Vram
-               , _gpuMode  :: GpuMode
+               , _gpuMode  :: !GpuMode
                  -- ^ Current mode of the GPU
-               , _gpuClock :: Word
+               , _gpuClock :: !Word
                  -- ^ Clock used to witch modes
-               , _gpuLine  :: Word
+               , _gpuLine  :: !Word
                  -- ^ Number of the current line
+               , renderingMem :: !(V.Vector Word8)
+                 -- ^ Memory used for rendering the screen
                } deriving (Show, Eq)
 
 instance Default Gpu where
@@ -107,6 +119,7 @@ instance Default Gpu where
     , _gpuMode = HorizontalBlank
     , _gpuClock = 0
     , _gpuLine = 0
+    , renderingMem = emptyMem [0..144*166*3]
     }
 
 -- | The MMU (memory)
@@ -256,5 +269,3 @@ instance HasRegisters Cpu where registers = cpuRegisters
 instance HasClock Cpu where clock = cpuClock
 instance HasGpu Mmu where gpu = mmuGpu
 instance HasGpu Vm where gpu = vmMmu . mmuGpu
-
-
