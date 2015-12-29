@@ -32,7 +32,6 @@ readProgramW = do
 -- | Execute exactly one instruction
 exec :: VmS ()
 exec = do
---  vm %= (\vm' -> if (vm' ^. pc == 0) then (pc .~ 0x100 $ vm') else vm')
   interruptState <- use interrupt
 
   disableBios =<< use vm
@@ -40,6 +39,8 @@ exec = do
 
   t += inst ^. t
   m += inst ^. m
+
+  --TODO : Add GPU Here
 
   switchInterrupt interruptState
   where

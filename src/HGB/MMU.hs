@@ -1,4 +1,7 @@
-{- | MMU Module (Contain all the non-graphic memory)
+{- | MMU Module (Contain all the memory)
+
+Export functions allowing easy reading and writing of
+byte into the memory. It does include vram.
 
 > From: Pan Docs - nocash / kOOPa
 >

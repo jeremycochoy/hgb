@@ -23,7 +23,7 @@ main = do
         Right vm'' -> do
           putStrLn . groom $ vm'' ^. cartridge
           putStrLn . groom $ vm'' ^. cpu
-          runStep' vm''
+          runStep'' 0 vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do

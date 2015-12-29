@@ -2,7 +2,7 @@ name:                hgb
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            A Game Boy Emulator
 homepage:            https://github.com/Zenol/hgb
 category:            Game
@@ -11,7 +11,7 @@ license-file:        LICENSE
 author:              Jérémy Cochoy
 maintainer:          jeremy.cochoy@gmail.com
 build-type:          Simple
-cabal-version:       >=1.8
+cabal-version:       >=1.14
 
 library
   hs-source-dirs: src
@@ -19,10 +19,11 @@ library
   exposed-modules:     HGB.Types,
                        HGB.MMU,
                        HGB.CPU,
+                       HGB.GPU,
                        HGB.Cartridge,
                        HGB.Lens
 
-  build-depends:       base           == 4.6.*,
+  build-depends:       base           == 4.8.*,
                        lens           >= 3.9,
                        data-default   >= 0.5,
                        vector         >= 0.10,
@@ -33,7 +34,7 @@ library
 executable hgb
   hs-source-dirs: src
   main-is: Main.hs
-  build-depends:       base           == 4.6.*,
+  build-depends:       base           == 4.8.*,
                        lens           >= 3.9,
                        data-default   >= 0.5,
                        vector         >= 0.10,

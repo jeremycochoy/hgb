@@ -85,10 +85,29 @@ instance Default Cpu where
     , _interrupt = IDisabled
     }
 
-data Gpu = Gpu { _vram :: !(V.Vector Word8) } deriving (Show, Eq)
+data GpuMode = ScanlineOAM
+             | ScanlineVRAM
+             | HorizontalBlank
+             | VerticalBlank
+             deriving (Show, Eq)
+
+data Gpu = Gpu { _vram     :: !(V.Vector Word8)
+                 -- ^ Vram
+               , _gpuMode  :: GpuMode
+                 -- ^ Current mode of the GPU
+               , _gpuClock :: Word
+                 -- ^ Clock used to witch modes
+               , _gpuLine  :: Word
+                 -- ^ Number of the current line
+               } deriving (Show, Eq)
 
 instance Default Gpu where
-  def = Gpu { _vram = emptyMem [0x8000..0x9FFF] }
+  def = Gpu
+    { _vram = emptyMem [0x8000..0x9FFF]
+    , _gpuMode = HorizontalBlank
+    , _gpuClock = 0
+    , _gpuLine = 0
+    }
 
 -- | The MMU (memory)
 data Mmu = Mmu
