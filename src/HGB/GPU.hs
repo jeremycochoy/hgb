@@ -30,7 +30,7 @@ updateGPUmode t = do
       if gpuLine' == 143
         then gpuMode .= VerticalBlank
         else gpuMode .= ScanlineOAM
-        renderLine
+      renderLine
     ScanlineOAM | gpuClock' >= 80 -> do
       gpuClock -= 80
       gpuMode .= ScanlineVRAM
@@ -48,5 +48,5 @@ updateGPUmode t = do
     _ -> return ()
 
 renderLine :: VmS ()
-rebderLine = do
+renderLine = do
   return ()

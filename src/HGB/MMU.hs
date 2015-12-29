@@ -80,3 +80,11 @@ ww :: Word16 -> Word16 -> Mmu -> Mmu
 ww addr value mmu' = wb (addr + 1) h' . wb addr l' $ mmu'
   where
     (h', l') = wUncombine value
+
+-- | Read a word from the tile map 0
+readTileMap0 :: Word16 -> Word16 -> Mmu -> Word8
+readTileMap0 x y mmu' = rb (0x9800 + x + y * 256) mmu'
+
+-- | Read a word from the tile map 1
+readTileMap1 :: Word16 -> Word16 -> Mmu -> Word8
+readTileMap1 x y mmu' = rb (0x9C00 + x + y * 256) mmu'
