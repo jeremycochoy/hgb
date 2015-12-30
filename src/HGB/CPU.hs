@@ -254,7 +254,7 @@ dispatch 0xEB = trace "none"      $ iNone 0xEB
 dispatch 0xEC = trace "none"      $ iNone 0xEC
 dispatch 0xED = trace "none"      $ iNone 0xED
 
-dispatch 0xF0 = trace "LDaa8"     $ iLDa8a
+dispatch 0xF0 = trace "LDaa8"     $ iLDaa8
 dispatch 0xF1 = trace "POPAF"     $ iPOP lAF
 dispatch 0xF2 = trace "LDaCm"     $ iLDaCm
 dispatch 0xF3 = trace "DI"        $ iDI
@@ -1014,6 +1014,8 @@ iSUBimp value = do
   let b' = value
   let diff = a' - b'
   fReset
+  ck <- use gpuClock
+  trace (show $ (a', value, diff, 0 == diff, ck)) $ return ()
   lZf .= (0 == diff)
   lNf .= True
   lHf .= ((0x0F.&.a' - 0x0F.&.b') .&. 0x10 /= 0)
