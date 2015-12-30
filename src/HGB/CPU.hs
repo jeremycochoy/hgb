@@ -1015,7 +1015,7 @@ iSUBimp value = do
   let diff = a' - b'
   fReset
   lZf .= (0 == diff)
-  lNf .= 1
+  lNf .= True
   lHf .= ((0x0F.&.a' - 0x0F.&.b') .&. 0x10 /= 0)
   lCf .= (a' < b')
   return diff
