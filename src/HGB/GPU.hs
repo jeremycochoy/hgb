@@ -121,21 +121,24 @@ updateGPUmode t = do
 
 
 -- | Render a line of pixel from the background map and tile set.
+--   TODO : modify a little bit this function so that the code get readable.
 renderLine :: VmS ()
 renderLine = do
-  line <- use gpuLine
+  gpuLine' <- use gpuLine
+  let line = fromIntegral gpuLine' :: Word16
   mmu' <- use mmu
-  x' <- fromIntegral `fmap` use scx
-  y' <- (fromIntegral . (+line) . fromIntegral) `fmap` use scy
+  x <- fromIntegral `fmap` use scx
+  y <- (fromIntegral . (+line) . fromIntegral) `fmap` use scy
+  let y = line -- ?
   -- Compute the list of tiles id in the line y
-  let tileMapLine = readTileMapLine0 (x' `div` 8) (y' `div` 8) mmu'
+  let tileMapLine = readTileMapLine0 (x `div` 8) (y `div` 8) mmu' -- Todo : Read 1 more
   let tilesToPixels = colorFromTileRow
-                      . readTileLine0 mmu' (fromIntegral (y' `rem` 8 + 1))
+                      . readTileLine0 mmu' (fromIntegral (y `rem` 8))
                       . fromIntegral
   let pixels = tilesToPixels `concatMap` tileMapLine
   --
-  mapM (\(o, c) -> updateColor (x' + o) y' c) $
-    zip [0..] (drop (fromIntegral $ x' `rem` 8) pixels)
+  mapM (\(o, c) -> updateColor o (fromIntegral line) c) $
+    zip [0..159] (drop (fromIntegral $ x `rem` 8) pixels)
   return ()
   where
     -- | Update the pixel of the rendering memory at location

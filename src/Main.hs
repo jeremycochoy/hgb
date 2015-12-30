@@ -11,6 +11,10 @@ import Control.Monad.State (execState)
 import qualified Data.Vector.Unboxed as V
 import Data.Word (Word8)
 
+-- Debug
+import Data.List (intercalate)
+import HGB.GPU
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -22,7 +26,6 @@ main = do
         Left msg   -> putStrLn msg
         Right vm'' -> do
           putStrLn . groom $ vm'' ^. cartridge
-          putStrLn . groom $ vm'' ^. cpu
           runStep' vm''
 
 runStep :: Vm -> IO ()
@@ -39,16 +42,21 @@ runStep oldVm = do
 runStep' :: Vm -> IO ()
 runStep' oldVm = do
   newVM <- return . execState exec $ oldVm
---  putStr . show $ newVM ^. registers
---  putStr "\r"
+  putStr . show $ newVM ^. registers
+  putStr "\r"
   newVM `seq` runStep' newVM
 
 runStep'' :: Int -> Vm -> IO ()
 runStep'' i oldVm = do
   newVM <- return . execState exec $ oldVm
   case i of
-    800 -> do
-      debugDisp (newVM ^. vram)
+    2000 -> do
+--      debugDisp (newVM ^. vram)
+      let mmu' = newVM ^. mmu
+--      putStrLn ((++ "\n\n") . intercalate "\n" . showRenderedMem $ mmu')
+      putStr . show $ newVM ^. registers
+--      putStrLn . groom $ newVM ^. cpu
+--      putStrLn . groom $ newVM ^. gpu
       newVM `seq` runStep'' 0 newVM
     _ ->  newVM `seq` runStep'' (i+1) newVM
 

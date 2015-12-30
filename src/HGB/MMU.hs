@@ -55,7 +55,7 @@ rb addr mmu'
   | addr < 0xFEA0 = mmu' ^. oam   !& (addr - 0xFE00)
   | addr == 0xFFFF = mmu' ^. ier
   | addr >= 0xFF80 = mmu' ^. hram !& (addr - 0xFF80)
-  | otherwise = 0 -- TODO
+  | otherwise = dispatchIOread addr mmu'
 
 -- | Read a word from MMU
 rw :: Word16 -> Mmu -> Word16
@@ -73,7 +73,7 @@ wb addr value mmu'
   | addr < 0xFEA0 = oam   %~ up (addr - 0xFE00) $ mmu'
   | addr == 0xFFFF = ier .~ value $ mmu'
   | addr >= 0xFF80 = hram %~ up (addr - 0xFF80) $ mmu'
-  | otherwise = mmu' -- TODO
+  | otherwise = dispatchIOwrite addr value mmu'
   where
     up addr vec = vec // [(fromIntegral addr, value)]
 

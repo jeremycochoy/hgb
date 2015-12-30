@@ -13,6 +13,7 @@ import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed as HGB.Types ((!))
 import           Control.Monad.State
 import           Data.Bits
+import           Data.List (unfoldr, foldl')
 
 -- | Set of register
 data Registers = Registers
@@ -30,6 +31,29 @@ data Registers = Registers
   , _sp :: !Word16
     -- ^ Stack Pointer
   } deriving (Show, Eq)
+
+-- | Combine binary values to create a word8
+boolCombine :: [Bool] -> Word8
+boolCombine = foldl fct 0
+  where
+    fct stack bool = (boolToWord8 bool) .|. (stack `shiftL` 1)
+
+boolUncombine :: Word8 -> [Bool]
+boolUncombine v = wordToBool `fmap` unfoldr getBit (v, 0)
+  where
+    getBit (v, idx) = case idx of
+      8 -> Nothing
+      _ -> Just (v `shiftR` 7, (v `shiftL` 1, idx + 1))
+
+-- | Convert a 'Bool' to a 'Word8' with the rule :
+--   True  = 1
+--   False = 0
+boolToWord8 :: Bool -> Word8
+boolToWord8 False = 0
+boolToWord8 True  = 1
+
+wordToBool :: Word8 -> Bool
+wordToBool = (/= 0)
 
 -- | Combine the two input bytes h and l into a Word16 as h:l.
 wCombine :: Word8 -> Word8 -> Word16
@@ -131,21 +155,81 @@ data GpuMode = HorizontalBlank
                --   OAM and VRAM are accessible.
              deriving (Show, Eq)
 
+-- | The LCDC register. It's default value is 0x91.
+data LCDCf = LCDCf { _lcdcDisplay        :: Bool
+                     -- ^ Bit 7 - LCD Control Operation *
+                     --     0: Stop completely (no picture on screen)
+                     --     1: operation
+                   , _lcdcTileMap        :: Bool
+                     -- ^ Bit 6 - Window Tile Map Display Select
+                     --     0: $9800-$9BFF
+                     --     1: $9C00-$9FFF
+                   , _lcdcWindow         :: Bool
+                     -- ^ Bit 5 - Window Display
+                     --     0: off
+                     --     1: on
+                   , _lcdcTileSetSelect  :: Bool
+                     -- ^ Bit 4 - BG & Window Tile Data Select
+                     --     0: $8800-$97FF
+                     --     1: $8000-$8FFF <- Same area as OBJ
+                   , _lcdcTileMapSelect  :: Bool
+                     -- ^ Bit 3 - BG Tile Map Display Select
+                     --     0: $9800-$9BFF
+                     --     1: $9C00-$9FFF
+                   , _lcdcSpriteSize     :: Bool
+                     -- ^ Bit 2 - OBJ (Sprite) Size
+                     --     0: 8*8
+                     --     1: 8*16 (width*height)
+                   , _lcdcSpriteDisplay  :: Bool
+                     -- ^ Bit 1 - OBJ (Sprite) Display
+                     --     0: off
+                     --     1: on
+                   , _lcdcWindowDisplay  :: Bool
+                     -- ^ Bit 0 - BG & Window Display
+                     --     0: off
+                     --     1: on
+                   } deriving (Show, Eq)
+
+instance Default LCDCf where
+   def = word8ToLCDC 0x91
+
+lcdcfList = [ _lcdcWindowDisplay
+             , _lcdcSpriteDisplay
+             , _lcdcWindow
+             , _lcdcTileSetSelect
+             , _lcdcTileMapSelect
+             , _lcdcSpriteSize
+             , _lcdcSpriteDisplay
+             , _lcdcWindowDisplay
+             ]
+
+lcdcToWord8 :: LCDCf -> Word8
+lcdcToWord8 v = boolCombine $ lcdcfList <*> [v]
+
+word8ToLCDC :: Word8 -> LCDCf
+word8ToLCDC v = LCDCf b0 b1 b2 b3 b4 b5 b6 b7
+  where
+    [b0, b1, b2, b3, b4, b5, b6, b7] = boolUncombine v
+
 -- | Represent the memory, registers and flags
-data Gpu = Gpu { _vram     :: !(V.Vector Word8)
+data Gpu = Gpu { _vram         :: !(V.Vector Word8)
                  -- ^ Vram
-               , _gpuMode  :: !GpuMode
+               , _gpuMode      :: !GpuMode
                  -- ^ Current mode of the GPU
-               , _gpuClock :: !Word
+               , _gpuClock     :: !Word
                  -- ^ Clock used to witch modes
-               , _gpuLine  :: !Word16
+               , _gpuLine      :: !Word16
                  -- ^ Number of the current line
                , _renderingMem :: !(V.Vector Word8)
                  -- ^ Memory used for rendering the screen
-               , _scx :: !Word8
+               , _scx          :: !Word8
                  -- ^ Scroll X register
-               , _scy :: !Word8
+               , _scy          :: !Word8
                  -- ^ Scroll Y register
+               , _bgPalette    :: !Word8
+                 -- ^ Background Palette
+               , _lcdcf         :: !LCDCf
+                 -- ^ LCDC flag
                } deriving (Show, Eq)
 
 -- | Compute the location of the pixel ('x','y') of color 'c'
@@ -162,6 +246,8 @@ instance Default Gpu where
     , _renderingMem = emptyMem [0..144*166*3]
     , _scx = 0
     , _scy = 0
+    , _bgPalette = 0 -- TODO
+    , _lcdcf = def
     }
 
 -- | The MMU (memory)
@@ -302,6 +388,7 @@ makeClassy ''Gpu
 makeClassy ''Registers
 makeClassy ''Clock
 makeClassy ''CartridgeDesc
+makeClassy ''LCDCf
 
 instance HasCpu Vm where cpu = vmCpu
 instance HasMmu Vm where mmu = vmMmu
