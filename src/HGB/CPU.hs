@@ -1014,9 +1014,10 @@ iSUBimp value = do
   let b' = value
   let diff = a' - b'
   fReset
-  lCf .= (a' < b')
   lZf .= (0 == diff)
+  lNf .= 1
   lHf .= ((0x0F.&.a' - 0x0F.&.b') .&. 0x10 /= 0)
+  lCf .= (a' < b')
   return diff
 
 iNone :: Word8 -> VmS Clock
