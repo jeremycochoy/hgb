@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module HGB.Types
     ( module HGB.Types

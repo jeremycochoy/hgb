@@ -10,6 +10,8 @@ import Control.Lens ((^.))
 import Control.Monad.State (execState)
 import qualified Data.Vector.Unboxed as V
 import Data.Word (Word8)
+import HGB.Lens
+import           Debug.Trace
 
 -- Debug
 import Data.List (intercalate)
@@ -26,7 +28,7 @@ main = do
         Left msg   -> putStrLn msg
         Right vm'' -> do
           putStrLn . groom $ vm'' ^. cartridge
-          runStep' vm''
+          runStep'' 0 vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -42,7 +44,8 @@ runStep oldVm = do
 runStep' :: Vm -> IO ()
 runStep' oldVm = do
   newVM <- return . execState exec $ oldVm
-  putStr . show $ newVM ^. registers
+--  trace (show $ (newVM ^. registers . lZf, newVM ^. gpuLine)) return ()
+  putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
   putStr "\r"
   newVM `seq` runStep' newVM
 
@@ -50,13 +53,15 @@ runStep'' :: Int -> Vm -> IO ()
 runStep'' i oldVm = do
   newVM <- return . execState exec $ oldVm
   case i of
-    2000 -> do
+    1000 -> do
 --      debugDisp (newVM ^. vram)
       let mmu' = newVM ^. mmu
---      putStrLn ((++ "\n\n") . intercalate "\n" . showRenderedMem $ mmu')
-      putStr . show $ newVM ^. registers
+--      putStr . show $ newVM ^. registers
 --      putStrLn . groom $ newVM ^. cpu
 --      putStrLn . groom $ newVM ^. gpu
+--      putStrLn (intercalate "\n" . showRenderedMem $ mmu')
+      putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
+      putStr "\r"
       newVM `seq` runStep'' 0 newVM
     _ ->  newVM `seq` runStep'' (i+1) newVM
 
