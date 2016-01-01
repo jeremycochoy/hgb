@@ -55,15 +55,16 @@ runStep'' :: Int -> Vm -> IO ()
 runStep'' i oldVm = do
   newVM <- return . execState exec $ oldVm
   case i of
-    1000 -> do
+    400000 -> do
 --      debugDisp (newVM ^. vram)
       let mmu' = newVM ^. mmu
 --      putStr . show $ newVM ^. registers
 --      putStrLn . groom $ newVM ^. cpu
 --      putStrLn . groom $ newVM ^. gpu
 --      putStrLn (intercalate "\n" . showRenderedMem $ mmu')
-      putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
-      putStr "\r"
+      putStrLn . groom $ newVM ^. vram
+--      putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
+--      putStr "\r"
       newVM `seq` runStep'' 0 newVM
     _ ->  newVM `seq` runStep'' (i+1) newVM
 

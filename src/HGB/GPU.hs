@@ -15,17 +15,16 @@ import           Data.Bits hiding (bit)
 import           Debug.Trace
 
 
--- | Read a word from the tile map starting at 'addr'
-readTileMapI :: Word16 -> Word16 -> Word16 -> Mmu -> Word8
-readTileMapI addr x y mmu' = rb (addr + x + y * 256) mmu'
-
--- | Read a word from the tile map 0
-readTileMap0 :: Word16 -> Word16 -> Mmu -> Word8
-readTileMap0 = readTileMapI 0x9800
-
--- | Read a word from the tile map 1
-readTileMap1 :: Word16 -> Word16 -> Mmu -> Word8
-readTileMap1 = readTileMapI 0x9C00
+-- | Read a word from the tile map 'flag' starting at 'addr'
+--
+--   For Tile Map 0, addr = 0x9800
+--   For Tile Map 1, addr = 0x9C00
+readTileMap :: Bool -> Word16 -> Word16 -> Mmu -> Word8
+readTileMap flag x y mmu' = rb (addr + x + y * 256) mmu'
+  where
+    addr = case flag of
+      False -> 0x9800 -- Tile Map 0
+      True  -> 0x9C00 -- Tile Map 1
 
 -- | Read the line 'line' from tile 'tileID'
 --   from the tile set located at 'addr'
@@ -36,11 +35,11 @@ readTileLineI addr mmu' line tileID = rw lineAddr mmu'
     tileAddr = addr + (fromIntegral tileID) * 16
     lineAddr = tileAddr + (fromIntegral line) * 2
 
--- | Read a tile from tile set 0 at location loc
-readTileLine0 :: Mmu -> Word8 -> Word8 -> Word16
-readTileLine0 mmu' line tileID = readTileLineI 0x8000 mmu' line (fromIntegral tileID)
-readTileLine1 :: Mmu -> Word8 -> Word8 -> Word16
-readTileLine1 mmu' line tileID = readTileLineI 0x9000 mmu' line (fromIntegral signedTileID)
+-- | Read the 'line' line of the 'tileID' tile from tile set 0 or 1,
+--   depending of the boolean flag 'tileMap'.
+readTileLine :: Bool -> Mmu -> Word8 -> Word8 -> Word16
+readTileLine True mmu' line tileID = readTileLineI 0x8000 mmu' line (fromIntegral tileID)
+readTileLine False mmu' line tileID = readTileLineI 0x9000 mmu' line (fromIntegral signedTileID)
   where
     signedTileID = (fromIntegral tileID) :: Int8
 
@@ -51,12 +50,12 @@ readTileLine1 mmu' line tileID = readTileLineI 0x9000 mmu' line (fromIntegral si
 --   in order to allow adding an offset in pixels (see
 --   scrollx and scrolly registers).
 --
-readTileMapLine0 :: Word16 -> Word16 -> Mmu -> [Word8]
-readTileMapLine0 x y mmu' = unfoldr getTile 0
+readTileMapLine :: Bool -> Word16 -> Word16 -> Mmu -> [Word8]
+readTileMapLine flag x y mmu' = unfoldr getTile 0
   where
     getTile idx = case idx of
       21 -> Nothing
-      _ -> Just $ (readTileMap0 (x + idx) y mmu', idx + 1)
+      _ -> Just $ (readTileMap flag (x + idx) y mmu', idx + 1)
 
 -- | Take tile line, and produce a list of 8 pixels.
 --   each pixel is of one of the four colors in the 'GreyScale'.
@@ -103,12 +102,13 @@ updateGPUmode t = do
   case gpuMode' of
     HorizontalBlank | gpuClock' >= 204 -> do
       gpuClock -= 204
-      gpuLine' <- gpuLine <+= 1
+      gpuLine' <- use gpuLine
     -- If it's the last line of the screen
       if gpuLine' == 143
         then gpuMode .= VerticalBlank
         else gpuMode .= ScanlineOAM
       renderLine
+      gpuLine += 1
     ScanlineOAM | gpuClock' >= 80 -> do
       gpuClock -= 80
       gpuMode .= ScanlineVRAM
@@ -135,11 +135,10 @@ renderLine = do
   mmu' <- use mmu
   x <- fromIntegral `fmap` use scx
   y <- (fromIntegral . (+line) . fromIntegral) `fmap` use scy
-  let y = line -- ?
   -- Compute the list of tiles id in the line y
-  let tileMapLine = readTileMapLine0 (x `div` 8) (y `div` 8) mmu' -- Todo : Read 1 more
+  let tileMapLine = readTileMapLine (mmu' ^. lcdcBgTileMap) (x `div` 8) (y `div` 8) mmu'
   let tilesToPixels = colorFromTileRow
-                      . readTileLine0 mmu' (fromIntegral (y `rem` 8))
+                      . readTileLine (mmu' ^. lcdcTileSet) mmu' (fromIntegral (y `rem` 8))
                       . fromIntegral
   let pixels = tilesToPixels `concatMap` tileMapLine
   --
@@ -162,7 +161,7 @@ showRenderedMem mmu' = unfoldr getLine 0
   where
     getLine y = case y of
       144 -> Nothing
-      _   -> Just (unfoldr (getPixel y) 0, y + 1)
+      _   -> Just ((show y) ++ " : " ++ unfoldr (getPixel y) 0, y + 1)
     getPixel y x = case x of
       160 -> Nothing
       _   -> Just (selectChar $ ((mmu' ^. renderingMem) V.! (rendMemLoc x y RED)), x + 1)

@@ -159,7 +159,7 @@ data LCDCf = LCDCf { _lcdcDisplay        :: Bool
                      -- ^ Bit 7 - LCD Control Operation *
                      --     0: Stop completely (no picture on screen)
                      --     1: operation
-                   , _lcdcTileMap        :: Bool
+                   , _lcdcWindowTileMap  :: Bool
                      -- ^ Bit 6 - Window Tile Map Display Select
                      --     0: $9800-$9BFF
                      --     1: $9C00-$9FFF
@@ -167,11 +167,11 @@ data LCDCf = LCDCf { _lcdcDisplay        :: Bool
                      -- ^ Bit 5 - Window Display
                      --     0: off
                      --     1: on
-                   , _lcdcTileSetSelect  :: Bool
+                   , _lcdcTileSet        :: Bool
                      -- ^ Bit 4 - BG & Window Tile Data Select
                      --     0: $8800-$97FF
                      --     1: $8000-$8FFF <- Same area as OBJ
-                   , _lcdcTileMapSelect  :: Bool
+                   , _lcdcBgTileMap      :: Bool
                      -- ^ Bit 3 - BG Tile Map Display Select
                      --     0: $9800-$9BFF
                      --     1: $9C00-$9FFF
@@ -192,11 +192,11 @@ data LCDCf = LCDCf { _lcdcDisplay        :: Bool
 instance Default LCDCf where
    def = word8ToLCDC 0x91
 
-lcdcfList = [ _lcdcWindowDisplay
-             , _lcdcSpriteDisplay
+lcdcfList = [ _lcdcDisplay
+             , _lcdcWindowTileMap
              , _lcdcWindow
-             , _lcdcTileSetSelect
-             , _lcdcTileMapSelect
+             , _lcdcTileSet
+             , _lcdcBgTileMap
              , _lcdcSpriteSize
              , _lcdcSpriteDisplay
              , _lcdcWindowDisplay
@@ -380,20 +380,23 @@ data CartridgeDesc = CartridgeDesc
 instance Default CartridgeDesc where
   def = CartridgeDesc {_title = "", _manufacturer = "", _cartridgeType = def}
 
+makeClassy ''LCDCf
 makeClassy ''Mmu
-makeClassy ''Vm
-makeClassy ''Cpu
 makeClassy ''Gpu
+makeClassy ''Cpu
 makeClassy ''Registers
 makeClassy ''Clock
 makeClassy ''CartridgeDesc
-makeClassy ''LCDCf
+makeClassy ''Vm
 
 instance HasCpu Vm where cpu = vmCpu
 instance HasMmu Vm where mmu = vmMmu
-instance HasRegisters Vm where registers = vmCpu . cpuRegisters
-instance HasClock Vm where clock = vmCpu . cpuClock
 instance HasRegisters Cpu where registers = cpuRegisters
+instance HasRegisters Vm where registers = vmCpu . cpuRegisters
 instance HasClock Cpu where clock = cpuClock
+instance HasClock Vm where clock = vmCpu . cpuClock
 instance HasGpu Mmu where gpu = mmuGpu
 instance HasGpu Vm where gpu = vmMmu . mmuGpu
+instance HasLCDCf Gpu where lCDCf = lcdcf
+instance HasLCDCf Mmu where lCDCf = gpu . lcdcf
+instance HasLCDCf Vm where lCDCf = vmMmu . gpu . lcdcf
