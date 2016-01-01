@@ -312,7 +312,7 @@ emptyMem :: [Integer] -> V.Vector Word8
 emptyMem = V.fromList . map (const 0)
 
 -- | The Virtual Machine
-data Vm = Vm { _vmCpu :: Cpu, _vmMmu :: Mmu, _cartridge :: CartridgeDesc}
+data Vm = Vm { _vmCpu :: !Cpu, _vmMmu :: Mmu, _cartridge :: !CartridgeDesc}
         deriving (Show, Eq)
 
 instance Default Vm where

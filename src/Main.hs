@@ -28,8 +28,8 @@ main = do
       case vm' of
         Left msg   -> putStrLn msg
         Right vm'' -> do
-          putStrLn . groom $ vm'' ^. cartridge
-          runStep' vm''
+--          putStrLn . groom $ vm'' ^. cartridge
+          runStep'' 0 vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -66,6 +66,15 @@ runStep'' i oldVm = do
       putStr "\r"
       newVM `seq` runStep'' 0 newVM
     _ ->  newVM `seq` runStep'' (i+1) newVM
+
+
+perfCheck :: Int -> Vm -> IO ()
+perfCheck i oldVm = do
+  newVM <- return . execState exec $ oldVm
+  case i of
+    53000 -> do
+      return ()
+    _ ->  newVM `seq` perfCheck (i+1) newVM
 
 -- | Display the memory (debug purpose)
 debugDisp :: V.Vector Word8 -> IO ()

@@ -46,11 +46,16 @@ readTileLine1 mmu' line tileID = readTileLineI 0x9000 mmu' line (fromIntegral si
 
 -- | Take the x and y in tile unit, and give back
 --   the list of the tile numbers.
+--
+--   This function return a list of 21 tiles instead of 20,
+--   in order to allow adding an offset in pixels (see
+--   scrollx and scrolly registers).
+--
 readTileMapLine0 :: Word16 -> Word16 -> Mmu -> [Word8]
 readTileMapLine0 x y mmu' = unfoldr getTile 0
   where
     getTile idx = case idx of
-      20 -> Nothing
+      21 -> Nothing
       _ -> Just $ (readTileMap0 (x + idx) y mmu', idx + 1)
 
 -- | Take tile line, and produce a list of 8 pixels.
