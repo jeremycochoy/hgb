@@ -9,6 +9,7 @@ import           Control.Monad.State
 import           HGB.Types
 import           HGB.MMU
 import           HGB.Lens
+import qualified Data.Vector.Unboxed as V
 import           Data.List (unfoldr)
 import           Data.Bits hiding (bit)
 import           Debug.Trace
@@ -137,24 +138,19 @@ renderLine = do
                       . fromIntegral
   let pixels = tilesToPixels `concatMap` tileMapLine
   --
-  mapM (\(o, c) -> updateColor o (fromIntegral line) c) $
-    zip [0..159] (drop (fromIntegral $ x `rem` 8) pixels)
+  let updateList = concatMap (\(o, c) -> createColor o (fromIntegral line) c) $
+                   zip [0..159] (drop (fromIntegral $ x `rem` 8) pixels)
+  renderingMem %= (V.// updateList)
   return ()
   where
-    -- | Update the pixel of the rendering memory at location
-    --   ('x', 'y') with the color 'c'.
-    updateColor :: Word16 -> Word16 -> GreyScale -> VmS ()
-    updateColor x y c = do
-      gpuRendMem x' y' RED   .= grey c
-      gpuRendMem x' y' GREEN .= grey c
-      gpuRendMem x' y' BLUE  .= grey c
-      where
-        x' = fromIntegral x
-        y' = fromIntegral y
-        grey WHITE     = 255
-        grey LIGHTGREY = 192
-        grey DARKGREY  = 96
-        grey BLACK     = 0
+    createColor x y c = [ (rendMemLoc x y RED, grey c)
+                        , (rendMemLoc x y GREEN, grey c)
+                        , (rendMemLoc x y BLUE, grey c)]
+    grey :: GreyScale -> Word8
+    grey WHITE     = 255
+    grey LIGHTGREY = 192
+    grey DARKGREY  = 96
+    grey BLACK     = 0
 
 showRenderedMem :: Mmu -> [[Char]]
 showRenderedMem mmu' = unfoldr getLine 0
@@ -164,7 +160,7 @@ showRenderedMem mmu' = unfoldr getLine 0
       _   -> Just (unfoldr (getPixel y) 0, y + 1)
     getPixel y x = case x of
       160 -> Nothing
-      _   -> Just (selectChar $ mmu' ^. (gpuRendMem x y RED), x + 1)
+      _   -> Just (selectChar $ ((mmu' ^. renderingMem) V.! (rendMemLoc x y RED)), x + 1)
     selectChar 255 = ' '
     selectChar 192 = '.'
     selectChar 96  = '%'

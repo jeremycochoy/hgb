@@ -12,6 +12,7 @@ import qualified Data.Vector.Unboxed as V
 import Data.Word (Word8)
 import HGB.Lens
 import           Debug.Trace
+import           System.IO
 
 -- Debug
 import Data.List (intercalate)
@@ -28,7 +29,7 @@ main = do
         Left msg   -> putStrLn msg
         Right vm'' -> do
           putStrLn . groom $ vm'' ^. cartridge
-          runStep'' 0 vm''
+          runStep' vm''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -47,6 +48,7 @@ runStep' oldVm = do
 --  trace (show $ (newVM ^. registers . lZf, newVM ^. gpuLine)) return ()
   putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
   putStr "\r"
+  hFlush stdout
   newVM `seq` runStep' newVM
 
 runStep'' :: Int -> Vm -> IO ()

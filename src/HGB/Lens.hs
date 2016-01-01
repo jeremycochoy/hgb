@@ -120,19 +120,3 @@ la16 addr f' vm' = (\v -> mmu %~ (wb addr v) $ vm') <$> f' (rb addr (vm' ^. mmu)
 -- | Read from (0xFF00 + addrL) where addrL is the address given.
 la8 :: Word8 -> Lens' Vm Word8
 la8 addrL f' vm' = la16 (0xFF00 + fromIntegral addrL) f' vm'
-
-
--- | Video rendering memory saw as a lens
-gpuRendMem :: HasGpu r => Int -> Int -> Color -> Lens' r Word8
-gpuRendMem x y color f' vm' = (writeGpuRendMem x y color vm') <$>
-                  f' (readGpuRendMem x y color vm')
-
--- | RR (where R means a register) saw as a lens
-writeGpuRendMem :: HasGpu r => Int -> Int -> Color -> r -> Word8 -> r
-writeGpuRendMem x y c gpu v = renderingMem %~ up $ gpu
-  where
-    up vec = vec V.// [(rendMemLoc x y c, v)]
-
--- | Compute r:r as a 16 bits addr
-readGpuRendMem :: HasGpu r => Int -> Int -> Color -> r ->  Word8
-readGpuRendMem x y c vm = (vm ^. renderingMem) V.! rendMemLoc x y c
