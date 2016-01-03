@@ -31,6 +31,11 @@ data Registers = Registers
     -- ^ Stack Pointer
   } deriving (Show, Eq)
 
+gameboyScreenWidth :: Int
+gameboyScreenWidth = 160
+gameboyScreenHeight :: Int
+gameboyScreenHeight = 144
+
 -- | Combine binary values to create a word8
 boolCombine :: [Bool] -> Word8
 boolCombine = foldl fct 0
