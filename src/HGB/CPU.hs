@@ -30,6 +30,19 @@ readProgramW = do
   pc += 2
   (rw pc') `liftM` (use mmu)
 
+-- | Execute until the clock increase by (at least) 70224.
+execFrame :: VmS ()
+execFrame = do
+  time <- use t
+  execFrame' (time + 70224)
+  where
+    execFrame' endTime = do
+      exec
+      currentTime <- use t
+      if currentTime >= endTime
+        then return ()
+        else execFrame' endTime
+
 -- | Execute exactly one instruction
 exec :: VmS ()
 exec = do
@@ -180,6 +193,15 @@ dispatch 0x7D = trace "LDll"      $ iLD a l
 dispatch 0x7E = trace "LDaHLm"    $ iLDHL a lHLm
 dispatch 0x7F = trace "LDaa"      $ iLD a a
 
+dispatch 0x80 = trace "ADDb"      $ iADD b
+dispatch 0x81 = trace "ADDc"      $ iADD c
+dispatch 0x82 = trace "ADDd"      $ iADD d
+dispatch 0x83 = trace "ADDe"      $ iADD e
+dispatch 0x84 = trace "ADDh"      $ iADD h
+dispatch 0x85 = trace "ADDl"      $ iADD l
+dispatch 0x86 = trace "ADDHLm"    $ iADDHL lHLm
+dispatch 0x87 = trace "ADDa"      $ iADD a
+
 dispatch 0x90 = trace "SUBb"      $ iSUB b
 dispatch 0x91 = trace "SUBc"      $ iSUB c
 dispatch 0x92 = trace "SUBd"      $ iSUB d
@@ -247,6 +269,7 @@ dispatch 0xE1 = trace "POPHL"     $ iPOP lHL
 dispatch 0xE2 = trace "LDCma"     $ iLDCma
 dispatch 0xE3 = trace "none"      $ iNone 0xE3
 dispatch 0xE5 = trace "PUSHHL"    $ iPUSH lHL
+dispatch 0xE6 = trace "ADDd8"     $ iADDd8
 dispatch 0xE9 = trace "JPHLm"     $ iJPHLm
 dispatch 0xEE = trace "XORd8"     $ iXORd8
 dispatch 0xEA = trace "LDa16a"    $ iLDa16a
@@ -1014,13 +1037,37 @@ iSUBimp value = do
   let b' = value
   let diff = a' - b'
   fReset
-  ck <- use gpuClock
-  trace (show $ (a', value, diff, 0 == diff, ck)) $ return ()
   lZf .= (0 == diff)
   lNf .= True
   lHf .= ((0x0F.&.a' - 0x0F.&.b') .&. 0x10 /= 0)
   lCf .= (a' < b')
   return diff
+
+-- | Add the input value to A, and place the result in A.
+--
+--   Set the right flags, reset N.
+--
+--   Syntax : A <- A - input
+iADD :: Getting Word8 Registers Word8 -> VmS Clock
+iADD input = a <~ (iADDimp =<< use (registers . input)) >> mkClock 1 4
+
+iADDHL :: Getting Word8 Vm Word8 -> VmS Clock
+iADDHL input = a <~ (iADDimp =<< use input) >> mkClock 1 8
+
+iADDd8 :: VmS Clock
+iADDd8 = a <~ (iADDimp =<< readProgramB) >> mkClock 2 8
+
+iADDimp :: Word8 -> VmS Word8
+iADDimp value = do
+  a' <- use $ a
+  let b' = value
+  let sum = a' + b'
+  fReset
+  lZf .= (0 == sum)
+  lNf .= False
+  lHf .= ((0x0F.&.a' + 0x0F.&.b') .&. 0x10 /= 0)
+  lCf .= (<) (0xFF :: Int) (fromIntegral a' + fromIntegral b')
+  return sum
 
 iNone :: Word8 -> VmS Clock
 iNone op' = error $ "This instruction desn't exists: " ++ (printf "0x%02x" op')

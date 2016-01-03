@@ -61,8 +61,8 @@ runStep'' i oldVm = do
 --      putStr . show $ newVM ^. registers
 --      putStrLn . groom $ newVM ^. cpu
 --      putStrLn . groom $ newVM ^. gpu
---      putStrLn (intercalate "\n" . showRenderedMem $ mmu')
-      putStrLn . groom $ newVM ^. vram
+      putStrLn (intercalate "\n" . showRenderedMem $ mmu')
+--      putStrLn . groom $ newVM ^. vram
 --      putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
 --      putStr "\r"
       newVM `seq` runStep'' 0 newVM

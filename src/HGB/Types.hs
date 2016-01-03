@@ -247,7 +247,7 @@ instance Default Gpu where
     , _gpuMode = HorizontalBlank
     , _gpuClock = 0
     , _gpuLine = 0
-    , _renderingMem = emptyMem [0..144*166*3]
+    , _renderingMem = emptyMem [1..144*160*3]
     , _scx = 0
     , _scy = 0
     , _bgPalette = 0 -- TODO
@@ -312,16 +312,30 @@ instance Default Mmu where
     , _mmuGpu = def
     }
 
+data Joypad = Joypad
+              { _jpUp     :: Bool
+              , _jpDown   :: Bool
+              , _jpLeft   :: Bool
+              , _jpRight  :: Bool
+              , _jpA      :: Bool
+              , _jpB      :: Bool
+              , _jpSelect :: Bool
+              , _jpStart  :: Bool
+              } deriving (Eq, Show)
+
+instance Default Joypad where
+  def = Joypad False False False False False False False False
+
 -- | Replace the each element of the list by a null byte
 emptyMem :: [Integer] -> V.Vector Word8
 emptyMem = V.fromList . map (const 0)
 
 -- | The Virtual Machine
-data Vm = Vm { _vmCpu :: !Cpu, _vmMmu :: Mmu, _cartridge :: !CartridgeDesc}
+data Vm = Vm { _vmCpu :: !Cpu, _vmMmu :: Mmu, _cartridge :: !CartridgeDesc, _vmJoypad :: Joypad}
         deriving (Show, Eq)
 
 instance Default Vm where
-  def = Vm { _vmCpu = def, _vmMmu = def, _cartridge = def }
+  def = Vm { _vmCpu = def, _vmMmu = def, _cartridge = def, _vmJoypad = def}
 
 type VmS = State Vm
 
@@ -390,6 +404,7 @@ makeClassy ''Mmu
 makeClassy ''Gpu
 makeClassy ''Cpu
 makeClassy ''Registers
+makeClassy ''Joypad
 makeClassy ''Clock
 makeClassy ''CartridgeDesc
 makeClassy ''Vm
@@ -405,3 +420,4 @@ instance HasGpu Vm where gpu = vmMmu . mmuGpu
 instance HasLCDCf Gpu where lCDCf = lcdcf
 instance HasLCDCf Mmu where lCDCf = gpu . lcdcf
 instance HasLCDCf Vm where lCDCf = vmMmu . gpu . lcdcf
+instance HasJoypad Vm where joypad = vmJoypad
