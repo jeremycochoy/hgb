@@ -33,7 +33,7 @@ library
 
 executable hgb
   hs-source-dirs: src
-  main-is: Main.hs
+  main-is: Shield.hs
   build-depends:       base           == 4.8.*,
                        lens           >= 3.9,
                        data-default   >= 0.5,
