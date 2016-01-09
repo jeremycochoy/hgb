@@ -5,6 +5,7 @@ module HGB.Types
     ) where
 
 import           Data.Word (Word8, Word16, Word)
+import           Control.Applicative
 import           Control.Lens
 import           Data.Default as HGB.Types
 import qualified Data.Vector.Unboxed as V
