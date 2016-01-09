@@ -24,7 +24,7 @@ library
                        HGB.Cartridge,
                        HGB.Lens
 
-  build-depends:       base           == 4.8.*,
+  build-depends:       base           >= 4.6,
                        lens           >= 3.9,
                        data-default   >= 0.5,
                        vector         >= 0.10,
