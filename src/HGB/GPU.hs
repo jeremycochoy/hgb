@@ -2,7 +2,7 @@
 
 module HGB.GPU where
 
-import           Data.Word (Word8, Word16)
+import           Data.Word (Word8, Word16, Word)
 import           Data.Int (Int8, Int16)
 import           Control.Lens
 import           Control.Monad.State
