@@ -33,6 +33,8 @@ import           HGB.IO
 import           Data.Vector.Unboxed ((!), (//))
 import           Control.Lens
 import qualified Data.Vector.Unboxed
+import           Debug.Trace
+import           Numeric
 
 -- | Same operator as Vector.Unboxed.!
 (!&) :: Integral a => Data.Vector.Unboxed.Vector Word8 -> a -> Word8

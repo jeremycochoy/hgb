@@ -122,9 +122,17 @@ processEvent ss window = do
         putStrLn . show $ ssScale ss
         putStrLn . show $ f (ssScale ss)
         return . Just $ ss { ssScale = f (ssScale ss) }
+      -- Debuging keys
+      KeyP     -> do
+        putStrLn . show $ (vm' ^. registers, vm' ^. cpuClock)
+        return $ Just ss
+      KeyV     -> do
+        putStr . show $ vm' ^. vram
+        return $ Just ss
       _    -> processEvent ss window
     Nothing                  -> return . Just $ ss { ssKey = Nothing }
     _                        -> processEvent ss window
   where
     release keyLens = return . Just $ ss { ssVm = keyLens .~ False $ (ssVm ss) }
     press   keyLens = return . Just $ ss { ssVm = keyLens .~ False $ (ssVm ss) }
+    vm'             = ssVm ss

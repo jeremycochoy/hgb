@@ -74,7 +74,7 @@ dispatch 0x03 = trace "INCBC"    $ iINCr16 lBC
 dispatch 0x04 = trace "INCb"     $ iINC b
 dispatch 0x05 = trace "DECb"     $ iDEC b
 dispatch 0x06 = trace "LDbd8"    $ iLDd8 b
-dispatch 0x07 = trace "RLCa"     $ iRLC a
+dispatch 0x07 = trace "RLCa"     $ iRLCA
 dispatch 0x0A = trace "LDaBCm"   $ iLDHL a lBCm
 dispatch 0x0B = trace "DECBC"    $ iDECr16 lBC
 dispatch 0x0C = trace "INCc"     $ iINC c
@@ -88,7 +88,7 @@ dispatch 0x13 = trace "INCDE"    $ iINCr16 lDE
 dispatch 0x14 = trace "INCd"     $ iINC d
 dispatch 0x15 = trace "DECd"     $ iDEC d
 dispatch 0x16 = trace "LDdd8"    $ iLDd8 d
-dispatch 0x17 = trace "RLa"      $ iRL a
+dispatch 0x17 = trace "RLa"      $ iRLA
 dispatch 0x18 = trace "JRr8"     $ iJR
 dispatch 0x1A = trace "LDaDEm"   $ iLDHL a lDEm
 dispatch 0x1B = trace "DECDE"    $ iDECr16 lDE
@@ -98,7 +98,7 @@ dispatch 0x1E = trace "LDed8"    $ iLDd8 e
 dispatch 0x1F = trace "RCa"      $ iRR a
 
 dispatch 0x20 = trace "JRNZr8"   $ iJRf lNZf
-dispatch 0x21 = trace "LDSPd16"  $ iLDd16 lHL
+dispatch 0x21 = trace "LDHLd16"  $ iLDd16 lHL
 dispatch 0x22 = trace "LDIHLma"  $ iLDI lHLm a
 dispatch 0x23 = trace "INCHL"    $ iINCr16 lHL
 dispatch 0x24 = trace "INCh"     $ iINC h
@@ -372,14 +372,14 @@ dispatchCB 0x44 = trace "BIT0h"   $ iBIT 0 h
 dispatchCB 0x45 = trace "BIT0l"   $ iBIT 0 l
 dispatchCB 0x46 = trace "BIT0HLm" $ iBITHL 0 lHLm
 dispatchCB 0x47 = trace "BIT0a"   $ iBIT 0 a
-dispatchCB 0x48 = trace "BIT0b"   $ iBIT 1 b
-dispatchCB 0x49 = trace "BIT0c"   $ iBIT 1 c
-dispatchCB 0x4A = trace "BIT0d"   $ iBIT 1 d
-dispatchCB 0x4B = trace "BIT0e"   $ iBIT 1 e
-dispatchCB 0x4C = trace "BIT0h"   $ iBIT 1 h
-dispatchCB 0x4D = trace "BIT0l"   $ iBIT 1 l
-dispatchCB 0x4E = trace "BIT0HLm" $ iBITHL 1 lHLm
-dispatchCB 0x4F = trace "BIT0a"   $ iBIT 1 a
+dispatchCB 0x48 = trace "BIT1b"   $ iBIT 1 b
+dispatchCB 0x49 = trace "BIT1c"   $ iBIT 1 c
+dispatchCB 0x4A = trace "BIT1d"   $ iBIT 1 d
+dispatchCB 0x4B = trace "BIT1e"   $ iBIT 1 e
+dispatchCB 0x4C = trace "BIT1h"   $ iBIT 1 h
+dispatchCB 0x4D = trace "BIT1l"   $ iBIT 1 l
+dispatchCB 0x4E = trace "BIT1HLm" $ iBITHL 1 lHLm
+dispatchCB 0x4F = trace "BIT1a"   $ iBIT 1 a
 
 dispatchCB 0x50 = trace "BIT2b"   $ iBIT 2 b
 dispatchCB 0x51 = trace "BIT2c"   $ iBIT 2 c
@@ -615,7 +615,7 @@ iLDI = iLDmod 1
 --
 --   > LDI ((HL) | a) <- ((HL) | a)
 iLDD :: ASetter' Vm b -> Getting b Vm b -> VmS Clock
-iLDD =iLDmod (-1)
+iLDD = iLDmod (-1)
 
 -- | Implementation of LDD/LDI where mod should be (-1)/(+1)
 iLDmod :: Word16 -> ASetter' Vm b -> Getting b Vm b -> VmS Clock
@@ -863,8 +863,9 @@ iBIT n input = iBITHL n (registers . input) >> mkClock 2 8
 iBITHL :: Int -> Getting Word8 Vm Word8 -> VmS Clock
 iBITHL n input = do
   value <- use input
-  lZf .= testBit value n
-  lCf .= False >> lHf .= True
+  lZf .= testBit value (n-1)
+  lNf .= False
+  lHf .= True
   mkClock 2 16
 
 iLDCma :: VmS Clock
@@ -915,6 +916,12 @@ iRLCHL io = do
   lZf .= (res == 0)
   mkClock 2 16
 
+iRLCA :: VmS Clock
+iRLCA = do
+  iRLCHL (registers . a)
+  lZf .= False
+  mkClock 1 4
+
 -- | Rotate left and place 7th bit into carry.
 iRRC :: Lens' Registers Word8 -> VmS Clock
 iRRC io = iRRCHL (registers . io) >> mkClock 2 8
@@ -943,6 +950,12 @@ iRLHL io = do
   lCf .= (value .&. 0x80 /= 0) -- Take old bit 7
   lZf .= (res == 0)
   mkClock 2 16
+
+iRLA :: VmS Clock
+iRLA = do
+  iRLHL a
+  lZf .= False
+  mkClock 1 4
 
 -- | Rotate right throught carry
 --

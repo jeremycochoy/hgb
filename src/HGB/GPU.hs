@@ -13,6 +13,7 @@ import qualified Data.Vector.Unboxed as V
 import           Data.List (unfoldr)
 import           Data.Bits hiding (bit)
 import           Debug.Trace
+import           Numeric
 
 
 -- | Read a word from the tile map 'flag' starting at 'addr'
@@ -20,7 +21,7 @@ import           Debug.Trace
 --   For Tile Map 0, addr = 0x9800
 --   For Tile Map 1, addr = 0x9C00
 readTileMap :: Bool -> Word16 -> Word16 -> Mmu -> Word8
-readTileMap flag x y mmu' = rb (addr + x + y * 256) mmu'
+readTileMap flag x y mmu' = rb (addr + x + y * 32) mmu'
   where
     addr = case flag of
       False -> 0x9800 -- Tile Map 0
@@ -29,10 +30,10 @@ readTileMap flag x y mmu' = rb (addr + x + y * 256) mmu'
 -- | Read the line 'line' from tile 'tileID'
 --   from the tile set located at 'addr'
 --   as a list of Word16 pixels
-readTileLineI :: Word16 -> Mmu -> Word8 -> Int16 -> Word16
-readTileLineI addr mmu' line tileID = rw lineAddr mmu'
+readTileLineI :: Word16 -> Mmu -> Word8 -> Int -> Word16
+readTileLineI addr mmu' line tileID = rw (fromIntegral lineAddr) mmu'
   where
-    tileAddr = addr + (fromIntegral tileID) * 16
+    tileAddr = (fromIntegral addr) + tileID * 16 :: Int
     lineAddr = tileAddr + (fromIntegral line) * 2
 
 -- | Read the 'line' line of the 'tileID' tile from tile set 0 or 1,

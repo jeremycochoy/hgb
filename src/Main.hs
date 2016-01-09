@@ -29,7 +29,8 @@ main = do
         Left msg   -> putStrLn msg
         Right vm'' -> do
 --          putStrLn . groom $ vm'' ^. cartridge
-          runStep'' 0 vm''
+          vm''' <- runStep' vm''
+          runStep vm'''
 
 runStep :: Vm -> IO ()
 runStep oldVm = do
@@ -39,17 +40,23 @@ runStep oldVm = do
   newVM <- return . execState exec $ oldVm
   -- Display CPU
   putStrLn . groom $ newVM ^. cpu
+  putStrLn $ "lZ:" ++ (show $ newVM ^. cpu . lZf)
+  putStrLn $ "lN:" ++ (show $ newVM ^. cpu . lNf)
+  putStrLn $ "lH:" ++ (show $ newVM ^. cpu . lHf)
+  putStrLn $ "lC:" ++ (show $ newVM ^. cpu . lCf)
   -- Loop
-  runStep newVM
+  newVM `seq` runStep newVM
 
-runStep' :: Vm -> IO ()
+runStep' :: Vm -> IO Vm
 runStep' oldVm = do
   newVM <- return . execState exec $ oldVm
+  if (newVM ^. pc) >= 0x94
+    then return newVM
+    else newVM `seq` runStep' newVM
 --  trace (show $ (newVM ^. registers . lZf, newVM ^. gpuLine)) return ()
-  putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
-  putStr "\r"
-  hFlush stdout
-  newVM `seq` runStep' newVM
+--  putStr . show $ (newVM ^. registers, newVM ^. cpuClock)
+--  putStr "\r"
+--  hFlush stdout
 
 runStep'' :: Int -> Vm -> IO ()
 runStep'' i oldVm = do
