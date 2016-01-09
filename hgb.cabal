@@ -42,6 +42,6 @@ executable hgb
                        mtl            >= 2.1,
                        errors         >= 1.4.2,
                        bytestring     >= 0.10.0.2,
-                       SFML           >= 2.3.2,
+                       SFML           >= 2.3.2
                        -- Debug only :
-                       groom          >= 0.1
+                       -- groom          >= 0.1
