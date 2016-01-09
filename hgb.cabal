@@ -2,7 +2,7 @@ name:                hgb
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.1.0
+version:             0.2.0.0
 synopsis:            A Game Boy Emulator
 homepage:            https://github.com/Zenol/hgb
 category:            Game
@@ -20,6 +20,7 @@ library
                        HGB.MMU,
                        HGB.CPU,
                        HGB.GPU,
+                       HGB.IO,
                        HGB.Cartridge,
                        HGB.Lens
 
@@ -41,5 +42,6 @@ executable hgb
                        mtl            >= 2.1,
                        errors         >= 1.4.2,
                        bytestring     >= 0.10.0.2,
+                       SFML           >= 2.3.2,
                        -- Debug only :
                        groom          >= 0.1
