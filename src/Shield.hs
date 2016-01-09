@@ -48,6 +48,7 @@ launchShield ss = do
   clearRenderWindow window SFML.Graphics.Color.white
   Right sprite <- createSprite
   Right texture <- createTexture gameboyScreenWidth gameboyScreenHeight
+  setSmooth texture True
   setTexture sprite texture True
   loop ss window texture sprite
   destroy window
