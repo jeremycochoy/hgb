@@ -68,7 +68,7 @@ exec = do
 -- | Select the right instruction from the opcode.
 dispatch :: Word8 -> Instruction
 dispatch 0x00 = trace "NOP"      $ iNOP
-dispatch 0x01 = trace "LDSPd16"  $ iLDd16 lBC
+dispatch 0x01 = trace "LDSPd16"  $ iLDd16 lSP
 dispatch 0x02 = trace "LDBCma"   $ iLDHL lBCm a
 dispatch 0x03 = trace "INCBC"    $ iINCr16 lBC
 dispatch 0x04 = trace "INCb"     $ iINC b
@@ -632,7 +632,7 @@ iLDd16 output = output <~ readProgramW >> (mkClock 3 12)
 iLDd8 :: ASetter' Registers Word8 -> VmS Clock
 iLDd8 output = registers . output <~ readProgramB >> (mkClock 2 8)
 
--- | LD Register <- immediate Word8
+-- | LD (HL) <- immediate Word8
 iLDHLd8 :: ASetter' Vm Word8 -> VmS Clock
 iLDHLd8 output = output <~ readProgramB >> (mkClock 2 12)
 
