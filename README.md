@@ -1,5 +1,10 @@
-Haskell Game Boy Emulator
+Haskell Game Boy Emulator -- Project dropped
 =========================
+
+>    This project was replaced by SGB, a rewriting
+>    of this source code in Rust, using the Haskell
+>    architecture (but without i/o lens).
+
 
 HGB is a proof of concept that you can write emulators in haskell.
 
